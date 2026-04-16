@@ -92,7 +92,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <!-- Modal Saída Parcial -->
 <div class="modal" id="mSaidaP"><div class="mc" style="max-width:550px"><div class="mh"><h3>Nova Saída Parcial</h3><button class="mx" onclick="cM('mSaidaP')">&times;</button></div><div class="mb">
 <input type="hidden" id="spOsId">
-<div class="fg"><label>Peso desta saída (KG) *</label><input type="number" id="spPeso" class="fc" step="0.01" min="0.01" placeholder="Ex: 5.50"></div>
+<div class="fg"><label>Peso desta saída (KG) *</label><input type="text" inputmode="decimal" id="spPeso" class="fc" placeholder="Ex: 0,402"></div>
 <div class="fg"><label>Observação</label><textarea id="spObs" class="fc" placeholder="Observação desta saída parcial..."></textarea></div>
 <div class="fg"><label>Fotos desta saída</label><p class="ts tlt mb8">Tire fotos ou selecione da galeria</p>
 <div class="foto-upload-area" onclick="document.getElementById('spFotosInput').click()">
@@ -139,6 +139,27 @@ function tgM(){document.getElementById('sBar').classList.toggle('open');document
 function podeEditar(etapa){if(!U)return false;if(isAdmin())return true;return PERMS.some(p=>p.usuario_id===U.id&&p.etapa_nome===etapa&&p.pode_editar)}
 function isAdmin(){return UP&&UP.perfil==='administrador'}
 function openLightbox(url){document.getElementById('lboxImg').src=url;document.getElementById('lbox').classList.add('on')}
+function parsePesoInput(v){
+  if(v===null||v===undefined)return NaN;
+  let s=String(v).trim();
+  if(!s)return NaN;
+  s=s.replace(/\s+/g,'');
+  if(s.includes(',')&&s.includes('.')){
+    s=s.replace(/\./g,'').replace(',', '.');
+  }else if(s.includes(',')){
+    s=s.replace(',', '.');
+  }
+  s=s.replace(/[^0-9.\-]/g,'');
+  const parts=s.split('.');
+  if(parts.length>2){
+    s=parts.shift()+'.'+parts.join('');
+  }
+  return Number(s);
+}
+function formatPeso(v){
+  const n=Number(v||0);
+  return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3});
+}
 
 const NAV=[
 {id:'dashboard',l:'Dashboard',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'},
@@ -191,7 +212,7 @@ async function pgN(el){
   <div class="fr"><div class="fg"><label>Número da OS *</label><input type="text" id="oN" class="fc" placeholder="Ex: OS-2026-0001" required><p class="ts tlt mt8" id="oNHint"></p></div><div class="fg"><label>Data de Entrada *</label><input type="date" id="oD" class="fc" value="${hj()}" required></div></div>
   <div class="fg"><label>Cliente *</label><input type="hidden" id="oCid"><div class="cli-auto"><input type="text" id="oCSearch" class="fc" placeholder="Digite o nome do cliente..." autocomplete="off" required oninput="handleCliSearch()" onfocus="handleCliSearch()" onkeydown="navCliSearch(event)"><div id="oCResults" class="cli-results"></div></div><div id="oCChip" class="cli-chip"></div><p class="ts tlt mt8">Digite para buscar e selecione o cliente correto.</p><button type="button" class="btn bo bsm mt8" onclick="openNewCli()">+ Novo cliente</button></div>
   <div class="fr"><div class="fg"><label>Tipo *</label><select id="oT" class="fc" required onchange="tgC()"><option value="">Selecione</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select></div><div class="fg" id="gCa" style="display:none"><label>Cataforético?</label><div class="fchk mt8"><input type="checkbox" id="oCa"><label for="oCa">Sim, possui</label></div></div></div>
-  <div id="flashFields" style="display:none"><div class="fr"><div class="fg"><label>Cor do Flash *</label><select id="oFCor" class="fc"><option value="">Selecione</option><option value="ouro">Ouro</option><option value="prata">Prata</option><option value="diamante">Diamante</option></select></div><div class="fg"><label>Peso Entrada (KG) *</label><input type="number" id="oFPeso" class="fc" step="0.01" min="0.01" placeholder="Ex: 12.50"></div></div>
+  <div id="flashFields" style="display:none"><div class="fr"><div class="fg"><label>Cor do Flash *</label><select id="oFCor" class="fc"><option value="">Selecione</option><option value="ouro">Ouro</option><option value="prata">Prata</option><option value="diamante">Diamante</option></select></div><div class="fg"><label>Peso Entrada (KG) *</label><input type="text" inputmode="decimal" id="oFPeso" class="fc" placeholder="Ex: 0,402"></div></div>
   <div class="fg"><label>Fotos de Entrada *</label><p class="ts tlt mb8">Tire fotos ou selecione da galeria (mín. 1 foto)</p>${renderUploadArea('fEntPrev','fEntInput')}</div></div>
   <div id="folhFields" style="display:none"><div class="fg"><label>Peso (KG)</label><input type="text" id="oV" class="fc" placeholder="Ex: 12.5 KG"></div></div>
   <div class="fg"><label>Observações</label><textarea id="oO" class="fc"></textarea></div>
@@ -241,7 +262,8 @@ async function svOS(e){
   e.preventDefault();const b=document.getElementById('bSv');const tipo=document.getElementById('oT').value;
   if(tipo==='flash'){
     if(!document.getElementById('oFCor').value){toast('Selecione a cor do flash','er');return}
-    if(!document.getElementById('oFPeso').value){toast('Informe o peso','er');return}
+    const pesoFlash=parsePesoInput(document.getElementById('oFPeso').value);
+    if(!Number.isFinite(pesoFlash)||pesoFlash<=0){toast('Informe um peso válido','er');return}
     if(getPendingFiles().length===0){toast('Adicione pelo menos 1 foto de entrada','er');return}
   }
   b.disabled=true;b.textContent='Salvando...';
@@ -249,13 +271,14 @@ async function svOS(e){
     // Gerar número se flash (garantia contra race condition: regenera no momento do insert)
     let numero=document.getElementById('oN').value.trim();
     if(tipo==='flash'){const{data}=await sb.rpc('proximo_numero_os',{p_prefixo:'FL'});numero=data||numero}
-    const vol=tipo==='flash'?document.getElementById('oFPeso').value+' KG':(document.getElementById('oV').value.trim()||null);
+    const pesoFlash=tipo==='flash'?parsePesoInput(document.getElementById('oFPeso').value):null;
+    const vol=tipo==='flash'?formatPeso(pesoFlash)+' KG':(document.getElementById('oV').value.trim()||null);
     const clienteId=parseInt(document.getElementById('oCid').value||'0');if(!clienteId){toast('Selecione um cliente válido','er');b.disabled=false;b.textContent='Cadastrar OS';return}const py={numero_os:numero,data_entrada:document.getElementById('oD').value,cliente_id:clienteId,tipo,tem_cataforetico:document.getElementById('oCa')?.checked||false,volume:vol,observacoes:document.getElementById('oO').value.trim()||null,criado_por:U?.id||null};
     const{data:os,error}=await sb.from('ordens_servico').insert(py).select().single();if(error)throw error;
     const{error:e2}=await sb.rpc('gerar_etapas_os',{p_os_id:os.id,p_tipo:os.tipo,p_tem_cataforetico:os.tem_cataforetico,p_data_entrada:os.data_entrada});if(e2)throw e2;
     await sb.from('movimentacoes_os').insert({os_id:os.id,etapa_origem:null,etapa_destino:tipo==='flash'?'flash_em_andamento':'entrada',usuario_id:U?.id||null,observacoes:'OS cadastrada'});
     if(tipo==='flash'){
-      await sb.from('flash_controle').insert({os_id:os.id,cor:document.getElementById('oFCor').value,peso_kg:parseFloat(document.getElementById('oFPeso').value)});
+      await sb.from('flash_controle').insert({os_id:os.id,cor:document.getElementById('oFCor').value,peso_kg:pesoFlash});
       const files=getPendingFiles();
       if(files.length>0)await uploadFlashFotos(os.id,files,'entrada');
       clearPending();
@@ -329,8 +352,8 @@ function fFL(){
   document.getElementById('tF').innerHTML=r.length?r.map(o=>{
     const ctrl=fcs[o.id];const cnt=fc[o.id]||{entrada:0,saida:0};
     const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—';
-    const pesoEnt=ctrl?ctrl.peso_kg+' KG':(o.volume||'—');
-    const pesoSai=ctrl?.peso_saida_total?ctrl.peso_saida_total+' KG':'—';
+    const pesoEnt=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
+    const pesoSai=ctrl?.peso_saida_total!==undefined&&ctrl?.peso_saida_total!==null?formatPeso(ctrl.peso_saida_total)+' KG':'—';
     return`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td>${corBdg}</td><td>${pesoEnt}</td><td>${pesoSai}</td><td><span class="txs">E:${cnt.entrada} / S:${cnt.saida}</span></td><td>${fd(o.data_entrada)}</td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td><td><span class="bdg ${o.status==='em_andamento'?'bok2':'bor'}">${ls(o.status)}</span></td></tr>`
   }).join(''):'<tr><td colspan="10" class="tc tlt" style="padding:40px">Nenhum flash</td></tr>';
 }
@@ -388,12 +411,12 @@ async function loadFlashCtrl(osId){
   cont.innerHTML=`
     <div class="fr mb16">
       <div><div class="txs tlt" style="text-transform:uppercase">Cor</div><div class="mt8"><span class="bdg b-${ctrl?.cor||''}" style="font-size:14px">${COR_LBL[ctrl?.cor]||'—'}</span></div></div>
-      <div><div class="txs tlt" style="text-transform:uppercase">Peso Entrada</div><div class="mt8" style="font-size:18px;font-weight:600">${pesoEntrada} KG</div></div>
+      <div><div class="txs tlt" style="text-transform:uppercase">Peso Entrada</div><div class="mt8" style="font-size:18px;font-weight:600">${formatPeso(pesoEntrada)} KG</div></div>
     </div>
     <div class="peso-box">
-      <div class="fx ac jb"><strong>Peso de Saída Acumulado</strong><span style="font-weight:600;color:${completo?'var(--ok)':'var(--wn)'}">${pesoSaida.toFixed(2)} / ${pesoEntrada} KG</span></div>
+      <div class="fx ac jb"><strong>Peso de Saída Acumulado</strong><span style="font-weight:600;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(pesoSaida)} / ${formatPeso(pesoEntrada)} KG</span></div>
       <div class="peso-bar"><div class="peso-bar-fill ${completo?'':'incomplete'}" style="width:${pct}%"></div></div>
-      <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar':`Faltam ${Math.max(0,pesoEntrada-pesoSaida).toFixed(2)} KG para finalizar`}</p>
+      <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar':`Faltam ${formatPeso(Math.max(0,pesoEntrada-pesoSaida))} KG para finalizar`}</p>
     </div>
     ${emAndamento?`<div class="fx g8 mb16 fw">
       <button class="btn bok bsm" onclick="abrirSaidaParcial(${osId})">+ Lançar Saída Parcial</button>
@@ -410,7 +433,7 @@ async function loadFlashCtrl(osId){
     </div>
     <div>
       <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas Parciais (${saidas.length})</h4>
-      ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${s.peso_kg} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}${canDelete&&emAndamento?`<button class="btn ber bsm mt8" onclick="rmSaidaParcial(${s.id},${osId})">Excluir saída</button>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída parcial registrada.</p>'}
+      ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}${canDelete&&emAndamento?`<button class="btn ber bsm mt8" onclick="rmSaidaParcial(${s.id},${osId})">Excluir saída</button>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída parcial registrada.</p>'}
     </div>`;
 }
 
@@ -438,7 +461,7 @@ function abrirSaidaParcial(osId){
 }
 async function svSaidaParcial(){
   const osId=parseInt(document.getElementById('spOsId').value);
-  const peso=parseFloat(document.getElementById('spPeso').value);
+  const peso=parsePesoInput(document.getElementById('spPeso').value);
   const obs=document.getElementById('spObs').value.trim()||null;
   if(!peso||peso<=0){toast('Informe peso válido','er');return}
   const btn=document.getElementById('btnSpSv');btn.disabled=true;btn.textContent='Salvando...';
@@ -466,7 +489,7 @@ async function abrirFinFlash(osId){
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   document.getElementById('fnOsId').value=osId;
   document.getElementById('fnObs').value='';
-  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${ctrl.peso_kg} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${ctrl.peso_saida_total} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${(ctrl.peso_saida_total-ctrl.peso_kg).toFixed(2)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
+  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl.peso_kg)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-ctrl.peso_kg)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
   oM('mFinFlash');
 }
 async function confirmarFinFlash(){
