@@ -115,6 +115,15 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div id="vLogin" style="display:none"><div class="lw"><div class="lb"><div class="logo">Scarlat Galvânica</div><h1>Cronograma de Produção</h1><p class="sub">Entre com suas credenciais</p><div class="lerr" id="lErr"></div><form onsubmit="doLogin(event)"><div class="fg"><label>E-mail</label><input type="email" id="iEm" class="fc" placeholder="seu@email.com" required></div><div class="fg"><label>Senha</label><input type="password" id="iPw" class="fc" placeholder="Sua senha" required></div><button type="submit" class="btn bp blg bbl mt16" id="bLog">Entrar</button></form></div></div></div>
 <div id="vApp" style="display:none"><button class="mtog" onclick="tgM()">&#9776;</button><div class="sov" id="sOv" onclick="tgM()"></div><div class="app"><aside class="side" id="sBar"><div class="side-logo"><h1>Cronograma</h1><span>Scarlat Galvânica</span></div><nav class="snav" id="sNav"></nav><div class="su"><div class="su-av" id="uA">?</div><div class="su-i"><div class="n" id="uN">...</div><div class="p" id="uP">—</div></div><button class="bout" onclick="doOut()" title="Sair"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div></aside><main class="mn" id="pg"></main></div></div>
 
+<!-- PUBLIC TRACKING VIEW (acompanhamento cliente) -->
+<div id="vPublic" style="display:none">
+  <div class="pub-wrap">
+    <div class="pub-hd"><div class="logo">Scarlat Galvânica</div><h1>Acompanhamento da OS</h1><div class="sub">Visualize o status da sua mercadoria</div></div>
+    <div class="pub-ct" id="pubApp"><div style="text-align:center;padding:80px 20px"><div class="spin"></div><p style="color:var(--txl);margin-top:16px">Carregando...</p></div></div>
+    <div class="pub-foot"><span class="pub-blink"></span> Atualização automática a cada 30s<br>&copy; Scarlat Galvânica</div>
+  </div>
+</div>
+
 <!-- MODALS -->
 <div class="modal" id="mCli"><div class="mc" style="max-width:450px"><div class="mh"><h3 id="mCliTitle">Novo Cliente</h3><button class="mx" onclick="cM('mCli')">&times;</button></div><div class="mb"><input type="hidden" id="cId"><div class="fg"><label>Nome *</label><input type="text" id="cN" class="fc"></div><div class="fg"><label>Telefone</label><input type="text" id="cT" class="fc"></div><div class="fg"><label>E-mail</label><input type="email" id="cE" class="fc"></div><div class="fg"><label>Observações</label><textarea id="cObs" class="fc"></textarea></div></div><div class="mf"><button class="btn bo" onclick="cM('mCli')">Cancelar</button><button class="btn bp" onclick="svCli()">Salvar</button></div></div></div>
 <div class="modal" id="mPrz"><div class="mc" style="max-width:450px"><div class="mh"><h3>Alterar Prazo</h3><button class="mx" onclick="cM('mPrz')">&times;</button></div><div class="mb"><input type="hidden" id="pEid"><div class="fg"><label>Nova Data</label><input type="date" id="pDt" class="fc"></div><div class="fg"><label>Justificativa *</label><textarea id="pJt" class="fc"></textarea></div></div><div class="mf"><button class="btn bo" onclick="cM('mPrz')">Cancelar</button><button class="btn bp" onclick="svPrz()">Confirmar</button></div></div></div>
@@ -630,9 +639,12 @@ const PUB_COR={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
 function fdLong(d){if(!d)return'—';return new Date(d+(d.includes('T')?'':'T00:00:00')).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
 
 async function showPublicView(token){
-  document.getElementById('vLogin').style.display='none';
-  document.getElementById('vApp').style.display='none';
-  document.getElementById('vPublic').style.display='';
+  const elLogin=document.getElementById('vLogin');
+  const elApp=document.getElementById('vApp');
+  const elPub=document.getElementById('vPublic');
+  if(elLogin)elLogin.style.display='none';
+  if(elApp)elApp.style.display='none';
+  if(elPub)elPub.style.display='';
   await loadPublicOS(token);
   setInterval(()=>loadPublicOS(token),30000);
 }
@@ -697,14 +709,5 @@ function renderPublic(os,etapas,flashCtrl){
 
 init();
 </script>
-
-<!-- PUBLIC TRACKING VIEW -->
-<div id="vPublic" style="display:none">
-  <div class="pub-wrap">
-    <div class="pub-hd"><div class="logo">Scarlat Galvânica</div><h1>Acompanhamento da OS</h1><div class="sub">Visualize o status da sua mercadoria</div></div>
-    <div class="pub-ct" id="pubApp"><div style="text-align:center;padding:80px 20px"><div class="spin"></div><p style="color:var(--txl);margin-top:16px">Carregando...</p></div></div>
-    <div class="pub-foot"><span class="pub-blink"></span> Atualização automática a cada 30s<br>&copy; Scarlat Galvânica</div>
-  </div>
-</div>
 </body>
 </html>
