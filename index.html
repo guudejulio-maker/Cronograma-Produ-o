@@ -160,6 +160,19 @@ function formatPeso(v){
   const n=Number(v||0);
   return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3});
 }
+function pesoVolumeOS(volume){
+  if(volume===null||volume===undefined)return 0;
+  return parsePeso(String(volume).replace(/\s*kg/ig,''))||0;
+}
+function pesoEntradaFlashReal(ctrl,os){
+  const pc=Number(ctrl?.peso_kg||0);
+  const pv=pesoVolumeOS(os?.volume);
+  if(pc>0&&pv>0){
+    const ratio=pc/pv;
+    if(ratio>900&&ratio<1100)return pv;
+  }
+  return pc||pv||0;
+}
 
 const NAV=[
 {id:'dashboard',l:'Dashboard',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'},
@@ -399,7 +412,7 @@ async function loadFlashCtrl(osId){
   const fEnt=fotos.filter(f=>f.tipo_foto==='entrada');
   const fSai=fotos.filter(f=>f.tipo_foto==='saida');
   const cont=document.getElementById('flashCtrlContent');
-  const pesoEntrada=ctrl?.peso_kg||0;
+  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
   const pesoSaida=ctrl?.peso_saida_total||0;
   const completo=pesoEntrada>0&&pesoSaida>=pesoEntrada;
   const pct=pesoEntrada>0?Math.min(100,(pesoSaida/pesoEntrada)*100):0;
@@ -489,7 +502,8 @@ async function abrirFinFlash(osId){
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   document.getElementById('fnOsId').value=osId;
   document.getElementById('fnObs').value='';
-  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl.peso_kg)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-ctrl.peso_kg)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
+  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
+  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(pesoEntrada)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-pesoEntrada)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
   oM('mFinFlash');
 }
 async function confirmarFinFlash(){
@@ -498,7 +512,8 @@ async function confirmarFinFlash(){
   if(!obs){toast('Informe a observação de finalização','er');return}
   // Revalidar peso no servidor
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
-  if(!ctrl||ctrl.peso_saida_total<ctrl.peso_kg){toast('Peso de saída insuficiente para finalizar','er');return}
+  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
+  if(!ctrl||ctrl.peso_saida_total<pesoEntrada){toast('Peso de saída insuficiente para finalizar','er');return}
   const btn=document.getElementById('btnFnCf');btn.disabled=true;btn.textContent='Finalizando...';
   try{
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
