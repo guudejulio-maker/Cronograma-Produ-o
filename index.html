@@ -75,6 +75,10 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 .peso-bar-fill{height:100%;background:linear-gradient(90deg,var(--ok) 0%,var(--ok) 100%);transition:width .3s}
 .peso-bar-fill.incomplete{background:linear-gradient(90deg,var(--wn) 0%,var(--wn) 100%)}
 .sp-item{background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid var(--acc)}
+.bdg-atraso{display:inline-block;background:var(--erb);color:var(--ert);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.bdg-nopraz{display:inline-block;background:var(--okb);color:var(--okt);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.prz-orig{font-weight:600;color:var(--pri)}
+.prz-repact{font-size:11px;color:var(--txl);font-style:italic}
 .cli-auto{position:relative}.cli-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--brd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:260px;overflow-y:auto;z-index:40;display:none}.cli-results.on{display:block}.cli-opt{padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:14px}.cli-opt:last-child{border-bottom:none}.cli-opt:hover,.cli-opt.on{background:var(--bg)}.cli-opt strong{display:block;color:var(--tx)}.cli-opt span{display:block;font-size:12px;color:var(--txl);margin-top:2px}.cli-chip{display:none;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--brd);border-radius:10px;background:var(--bg);margin-top:8px}.cli-chip.on{display:flex}.cli-chip strong{display:block}.cli-chip span{display:block;font-size:12px;color:var(--txl)}
 @media(max-width:768px){.side{transform:translateX(-100%)}.side.open{transform:translateX(0)}.sov.on{display:block}.mtog{display:flex}.mn{margin-left:0;padding:72px 16px 20px}.ph{flex-direction:column;align-items:flex-start}.fr,.fr3{grid-template-columns:1fr}.fil{flex-direction:column;align-items:stretch}.fil .fc{width:100%;min-width:auto}.stats{grid-template-columns:repeat(2,1fr);gap:10px}.st{padding:14px}.stv{font-size:24px}.g2{grid-template-columns:1fr}.lb{padding:32px 24px}.kc{min-width:260px}.foto-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}}
 </style>
@@ -88,6 +92,14 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="modal" id="mPrz"><div class="mc" style="max-width:450px"><div class="mh"><h3>Alterar Prazo</h3><button class="mx" onclick="cM('mPrz')">&times;</button></div><div class="mb"><input type="hidden" id="pEid"><div class="fg"><label>Nova Data</label><input type="date" id="pDt" class="fc"></div><div class="fg"><label>Justificativa *</label><textarea id="pJt" class="fc"></textarea></div></div><div class="mf"><button class="btn bo" onclick="cM('mPrz')">Cancelar</button><button class="btn bp" onclick="svPrz()">Confirmar</button></div></div></div>
 <div class="modal" id="mUsr"><div class="mc" style="max-width:480px"><div class="mh"><h3>Novo Usuário</h3><button class="mx" onclick="cM('mUsr')">&times;</button></div><div class="mb"><div class="fg"><label>Nome *</label><input type="text" id="uuN" class="fc"></div><div class="fg"><label>E-mail *</label><input type="email" id="uuE" class="fc"></div><div class="fg"><label>Senha *</label><input type="password" id="uuS" class="fc" minlength="6"></div><div class="fg"><label>Perfil</label><select id="uuP" class="fc"><option value="producao">Produção</option><option value="conferencia">Conferência</option><option value="expedicao">Expedição</option><option value="visualizacao">Visualização</option><option value="administrador">Administrador</option></select></div></div><div class="mf"><button class="btn bo" onclick="cM('mUsr')">Cancelar</button><button class="btn bp" onclick="crUsr()">Criar</button></div></div></div>
 <div class="modal" id="mEditOS"><div class="mc" style="max-width:600px"><div class="mh"><h3>Editar OS</h3><button class="mx" onclick="cM('mEditOS')">&times;</button></div><div class="mb"><div class="fr"><div class="fg"><label>Número da OS</label><input type="text" id="edNum" class="fc"></div><div class="fg"><label>Data de Entrada</label><input type="date" id="edData" class="fc"></div></div><div class="fg"><label>Cliente</label><select id="edCli" class="fc"></select></div><div class="fr"><div class="fg"><label>Tipo</label><select id="edTipo" class="fc"><option value="folheacao">Folheação</option><option value="flash">Flash</option></select></div><div class="fg"><label>Status</label><select id="edSt" class="fc"><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="cancelada">Cancelada</option><option value="postada">Postada</option></select></div></div><div class="fr"><div class="fg"><label>Peso (KG)</label><input type="text" id="edVol" class="fc"></div><div class="fg"><label>Cataforético</label><div class="fchk mt8"><input type="checkbox" id="edCata"><label for="edCata">Sim</label></div></div></div><div class="fg"><label>Observações</label><textarea id="edObs" class="fc"></textarea></div></div><div class="mf"><button class="btn bo" onclick="cM('mEditOS')">Cancelar</button><button class="btn bp" onclick="saveEditOS()">Salvar</button></div></div></div>
+
+<!-- Modal Alterar Cataforético (Catalogação) -->
+<div class="modal" id="mCata"><div class="mc" style="max-width:500px"><div class="mh"><h3>Alterar Cataforético</h3><button class="mx" onclick="cM('mCata')">&times;</button></div><div class="mb">
+<input type="hidden" id="ctOsId">
+<div class="peso-box"><p class="ts">Esta alteração modifica o fluxo da OS. A <strong>previsão atual</strong> será recalculada, mas o <strong>prazo original</strong> (compromisso com cliente) permanece fixo para histórico de atraso.</p></div>
+<div class="fg mt16"><div class="fchk"><input type="checkbox" id="ctCata"><label for="ctCata">OS possui etapa de Cataforético</label></div></div>
+<div class="fg"><label>Observação (opcional)</label><textarea id="ctObs" class="fc" placeholder="Motivo da alteração..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mCata')">Cancelar</button><button class="btn bok" onclick="svCatalogCata()" id="btnCtSv">Confirmar</button></div></div></div>
 
 <!-- Modal Saída Parcial -->
 <div class="modal" id="mSaidaP"><div class="mc" style="max-width:550px"><div class="mh"><h3>Nova Saída Parcial</h3><button class="mx" onclick="cM('mSaidaP')">&times;</button></div><div class="mb">
@@ -133,6 +145,10 @@ function al(d){if(!d)return'no_prazo';const h=new Date;h.setHours(0,0,0,0);const
 function ac(a){return a==='vencido'?'ber2':a==='vence_hoje'?'bor':a==='vence_amanha'?'bwn':'bok2'}
 function at(a){return a==='vencido'?'Vencido':a==='vence_hoje'?'Vence hoje':a==='vence_amanha'?'Vence amanhã':'No prazo'}
 function ba(d){const a=al(d);return`<span class="bdg ${ac(a)}">${at(a)}</span>`}
+// Calcula dias de atraso baseado no prazo ORIGINAL (prazo prometido)
+function diasAtraso(dataOrig,dataReal){if(!dataOrig)return 0;const orig=new Date(dataOrig+'T00:00:00');let ref;if(dataReal){ref=new Date(dataReal)}else{ref=new Date();ref.setHours(0,0,0,0)}const diff=Math.floor((ref-orig)/864e5);return diff>0?diff:0}
+function badgeAtrasoOrig(etapa){const orig=etapa.data_saida_prevista_original;if(!orig)return'';if(etapa.data_saida_real){const d=diasAtraso(orig,etapa.data_saida_real);if(d===0)return'<span class="bdg-nopraz">✓ No prazo</span>';return`<span class="bdg-atraso">+${d}d atraso</span>`}const d=diasAtraso(orig,null);if(d>0)return`<span class="bdg-atraso">+${d}d atraso</span>`;return''}
+function badgeAtrasoOS(os){const orig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;if(!orig)return'';if(os.data_conclusao){const d=diasAtraso(orig,os.data_conclusao);if(d===0)return'<span class="bdg-nopraz">✓ No prazo original</span>';return`<span class="bdg-atraso">+${d}d do original</span>`}const pAtual=os.data_prevista_conclusao;if(pAtual){const p=new Date(pAtual+'T00:00:00'),o=new Date(orig+'T00:00:00');if(p>o){const d=Math.floor((p-o)/864e5);return`<span class="bdg-atraso">+${d}d do original</span>`}}return'<span class="bdg-nopraz">No prazo original</span>'}
 function toast(m,t='ok'){const e=document.createElement('div');e.className=`toast t${t}`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.classList.add('show'),10);setTimeout(()=>{e.classList.remove('show');setTimeout(()=>e.remove(),300)},3500)}
 function oM(id){document.getElementById(id).classList.add('on')}function cM(id){document.getElementById(id).classList.remove('on')}
 function tgM(){document.getElementById('sBar').classList.toggle('open');document.getElementById('sOv').classList.toggle('on')}function hj(){return new Date().toISOString().split('T')[0]}
@@ -316,8 +332,8 @@ async function tgCliA(id,a){await sb.from('clientes').update({ativo:a}).eq('id',
 
 // ===== PRODUÇÃO =====
 let AO=[];
-async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">Todas as OS</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fSt" onchange="fOS()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option><option value="finalizado">Finalizado</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prev.</th><th>Alerta</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').order('criado_em',{ascending:false});AO=data||[];fOS()}
-function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',st=document.getElementById('fSt')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(st&&o.status!==st)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&al(o.data_prevista_conclusao)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';document.getElementById('tP').innerHTML=r.length?r.map(o=>`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':al(o.data_prevista_conclusao)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`).join(''):'<tr><td colspan="'+(isAdmin()?9:8)+'" class="tc tlt" style="padding:40px">Nenhuma OS</td></tr>'}
+async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">Todas as OS</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fSt" onchange="fOS()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option><option value="finalizado">Finalizado</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').order('criado_em',{ascending:false});AO=data||[];fOS()}
+function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',st=document.getElementById('fSt')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(st&&o.status!==st)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&al(o.data_prevista_conclusao)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':al(o.data_prevista_conclusao)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${ba(o.data_prevista_conclusao)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS</td></tr>'}
 
 // ===== KANBAN =====
 async function pgK(el){const C=[...ET,'finalizado'];el.innerHTML=`<div class="ph"><div><h2>Painel Etapas</h2><p class="phs">Kanban — Folheação</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="kb" id="kC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','folheacao').in('status',['em_andamento','finalizada']).order('data_prevista_conclusao');const m={};C.forEach(c=>m[c]=[]);(data||[]).forEach(o=>{const e=o.etapa_atual||'entrada';if(m[e])m[e].push(o)});document.getElementById('kC').innerHTML=C.map(c=>{const l=m[c];return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(o=>`<div class="kcd" onclick="location.hash='d/${o.id}'"><div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os}</div><div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>${o.volume?`<div class="txs tlt">${o.volume}</div>`:''}<div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>${o.tem_cataforetico?'<span class="bc mt8">Cataf.</span>':''}</div>`).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`}).join('')}
@@ -380,8 +396,9 @@ async function pgDet(el,id){
   const{data:os}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('id',id).single();
   if(!os){toast('OS não encontrada','er');go('producao');return}_o=os;
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
-  const canAdv=os.status==='em_andamento'&&iF&&podeEditar(os.etapa_atual);
-  const canPost=os.status==='finalizada'&&(isAdmin()||podeEditar('postagem'));
+  const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
+  const canPost=isAdmin()||(os.status==='finalizada'&&podeEditar('postagem'));
+  const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
   el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}<button class="btn bo" onclick="go('producao')">Voltar</button></div></div>
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
@@ -390,16 +407,18 @@ async function pgDet(el,id){
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Etapa</div><div><span class="be">${le(os.etapa_atual)}</span></div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Peso</div><div>${os.volume||'—'}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Entrada</div><div>${fd(os.data_entrada)}</div></div>
-  <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Prev. Conclusão</div><div>${fd(os.data_prevista_conclusao)} ${ba(os.data_prevista_conclusao)}</div></div>
+  <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Prazo Original</div><div class="prz-orig">${fd(prazoOrig)}</div></div>
+  <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Previsão Atual</div><div>${fd(os.data_prevista_conclusao)} ${ba(os.data_prevista_conclusao)}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Status</div><div><span class="bdg ${os.status==='em_andamento'?'bok2':os.status==='finalizada'?'bor':'ber2'}">${ls(os.status)}</span></div></div>
+  <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Atraso vs Original</div><div class="mt8">${badgeAtrasoOS(os)}</div></div>
   ${os.observacoes?`<div style="grid-column:1/-1"><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Obs</div><div class="mt8">${os.observacoes}</div></div>`:''}
   </div></div>
   ${isFl?'<div class="card mb24" id="flashCtrlArea"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Controle do Flash</h3><div id="flashCtrlContent"><div class="spin"></div></div></div>':''}
-  ${iF?`<div class="card mb24"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Progresso</h3><div class="ep" id="oEP"></div><div class="tw mt16"><table><thead><tr><th>Etapa</th><th>Status</th><th>Entr.Prev.</th><th>Saída Prev.</th><th>Entr.Real</th><th>Saída Real</th><th>Ação</th></tr></thead><tbody id="oET"></tbody></table></div></div>`:''}
+  ${iF?`<div class="card mb24"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">Progresso</h3><div id="cataAction"></div></div><div class="ep" id="oEP"></div><div class="tw mt16"><table><thead><tr><th>Etapa</th><th>Status</th><th>Prazo Original</th><th>Previsão Atual</th><th>Entr. Real</th><th>Saída Real</th><th>Atraso</th><th>Ação</th></tr></thead><tbody id="oET"></tbody></table></div></div>`:''}
   ${iF?'<div class="card mb24" id="obsCA" style="display:none"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Observações da Conferência</h3><div id="oCF"></div><div id="oCL"></div></div>':''}
   <div class="card"><div class="tabs"><button class="tb on" onclick="stb('mov',this)">Movimentações</button><button class="tb" onclick="stb('prz',this)">Alterações Prazo</button></div><div class="tp on" id="tpMov"><div id="lM"><div class="spin"></div></div></div><div class="tp" id="tpPrz"><div id="lP"><div class="spin"></div></div></div></div>`;
   if(isFl)await loadFlashCtrl(id);
-  if(iF){await ldEt(id);await ldOC(id)}
+  if(iF){await ldEt(id);await ldOC(id);renderCataAction(id)}
   await Promise.all([ldMv(id),ldHP(id)]);
 }
 
@@ -422,7 +441,8 @@ async function loadFlashCtrl(osId){
     const emAndamento=_o.status==='em_andamento';
     const canManage=isAdmin()||emAndamento; // ADM sempre; demais só em andamento
     const canDelete=isAdmin(); // exclusão só ADM
-    const canFinalize=emAndamento&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
+    const canAct=isAdmin()||emAndamento; // ADM pode sempre agir (lançar saida, finalizar, etc)
+    const canFinalize=canAct&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
 
     cont.innerHTML=`
     <div class="fr mb16">
@@ -434,7 +454,7 @@ async function loadFlashCtrl(osId){
       <div class="peso-bar"><div class="peso-bar-fill ${completo?'':'incomplete'}" style="width:${pct}%"></div></div>
       <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar':`Faltam ${formatPeso(Math.max(0,pesoEntrada-pesoSaida))} KG para finalizar`}</p>
     </div>
-    ${emAndamento?`<div class="fx g8 mb16 fw">
+    ${canAct?`<div class="fx g8 mb16 fw">
       <button class="btn bok bsm" onclick="abrirSaidaParcial(${osId})">+ Lançar Saída Parcial</button>
       ${canFinalize?`<button class="btn ba bsm" onclick="abrirFinFlash(${osId})">Finalizar Flash</button>`:''}
     </div>`:''}
@@ -449,7 +469,7 @@ async function loadFlashCtrl(osId){
     </div>
     <div>
       <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas Parciais (${saidas.length})</h4>
-      ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}${canDelete&&emAndamento?`<button class="btn ber bsm mt8" onclick="rmSaidaParcial(${s.id},${osId})">Excluir saída</button>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída parcial registrada.</p>'}
+      ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}${canDelete?`<button class="btn ber bsm mt8" onclick="rmSaidaParcial(${s.id},${osId})">Excluir saída</button>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída parcial registrada.</p>'}
     </div>`;
   }catch(err){
     console.error('Erro ao carregar controle do flash',err);
@@ -529,13 +549,61 @@ async function confirmarFinFlash(){
 }
 
 // ===== ETAPAS/FOLHEACAO =====
-async function ldEt(id){const{data}=await sb.from('etapas_os').select('*').eq('os_id',id).order('ordem');_e=data||[];document.getElementById('oEP').innerHTML=_e.map((e,i)=>{const s=e.status==='concluida'?'dn':e.status==='em_andamento'?'cr':'pd';return`<div class="epi"><div class="epc ${s}">${e.status==='concluida'?'&#10003;':(i+1)}</div><div class="epn">${le(e.etapa_nome)}</div></div>${i<_e.length-1?`<div class="epl ${e.status==='concluida'?'dn':''}"></div>`:''}`}).join('');document.getElementById('oET').innerHTML=_e.map(e=>{const ce=podeEditar(e.etapa_nome);return`<tr><td><strong>${le(e.etapa_nome)}</strong></td><td><span class="bdg ${e.status==='concluida'?'bok2':e.status==='em_andamento'?'bor':''}">${e.status==='concluida'?'Concluída':e.status==='em_andamento'?'Em andamento':'Pendente'}</span></td><td>${fd(e.data_entrada_prevista)}</td><td>${fd(e.data_saida_prevista)} ${e.status!=='concluida'?ba(e.data_saida_prevista):''}</td><td>${e.data_entrada_real?fh(e.data_entrada_real):'—'}</td><td>${e.data_saida_real?fh(e.data_saida_real):'—'}</td><td>${e.status!=='concluida'&&ce?`<button class="btn bo bsm" onclick="aPrz(${e.id},'${e.data_saida_prevista||''}')">Alterar</button>`:e.status!=='concluida'&&!ce?'<span class="txs tlt">Sem permissão</span>':''}</td></tr>`}).join('')}
+async function ldEt(id){
+  const{data}=await sb.from('etapas_os').select('*').eq('os_id',id).order('ordem');
+  _e=data||[];
+  document.getElementById('oEP').innerHTML=_e.map((e,i)=>{const s=e.status==='concluida'?'dn':e.status==='em_andamento'?'cr':'pd';return`<div class="epi"><div class="epc ${s}">${e.status==='concluida'?'&#10003;':(i+1)}</div><div class="epn">${le(e.etapa_nome)}</div></div>${i<_e.length-1?`<div class="epl ${e.status==='concluida'?'dn':''}"></div>`:''}`}).join('');
+  document.getElementById('oET').innerHTML=_e.map(e=>{
+    const ce=isAdmin()||podeEditar(e.etapa_nome);
+    const origSaida=e.data_saida_prevista_original||e.data_saida_prevista;
+    const atualSaida=e.data_saida_prevista;
+    const repact=origSaida&&atualSaida&&origSaida!==atualSaida;
+    return`<tr>
+      <td><strong>${le(e.etapa_nome)}</strong></td>
+      <td><span class="bdg ${e.status==='concluida'?'bok2':e.status==='em_andamento'?'bor':''}">${e.status==='concluida'?'Concluída':e.status==='em_andamento'?'Em andamento':'Pendente'}</span></td>
+      <td><span class="prz-orig">${fd(origSaida)}</span></td>
+      <td>${fd(atualSaida)}${repact?'<br><span class="prz-repact">(repactuada)</span>':''} ${e.status!=='concluida'?ba(atualSaida):''}</td>
+      <td>${e.data_entrada_real?fh(e.data_entrada_real):'—'}</td>
+      <td>${e.data_saida_real?fh(e.data_saida_real):'—'}</td>
+      <td>${badgeAtrasoOrig(e)}</td>
+      <td>${e.status!=='concluida'&&ce?`<button class="btn bo bsm" onclick="aPrz(${e.id},'${e.data_saida_prevista||''}')">Alterar Prev.</button>`:e.status!=='concluida'&&!ce?'<span class="txs tlt">Sem permissão</span>':''}</td>
+    </tr>`
+  }).join('');
+}
 async function ldOC(osId){const ec=_e.find(e=>e.etapa_nome==='conferencia');if(!ec)return;document.getElementById('obsCA').style.display='block';const co=podeEditar('conferencia');document.getElementById('oCF').innerHTML=co?`<div class="fx g8 mb16 fw"><textarea id="nOC" class="fc" placeholder="Observação..." style="min-height:60px;flex:1"></textarea><button class="btn bp" onclick="svOC(${osId})" style="align-self:flex-end">Salvar</button></div>`:'';const{data}=await sb.from('observacoes_conferencia').select('*,perfis(nome)').eq('os_id',osId).order('criado_em',{ascending:false});document.getElementById('oCL').innerHTML=data?.length?data.map(o=>`<div class="obs-item"><div class="obs-meta">${fh(o.criado_em)} ${o.perfis?.nome?'— '+o.perfis.nome:''}</div><div class="obs-text">${o.observacao}</div></div>`).join(''):'<p class="tlt ts">Nenhuma.</p>'}
 async function svOC(osId){const t=document.getElementById('nOC')?.value?.trim();if(!t){toast('Escreva','er');return}const{error}=await sb.from('observacoes_conferencia').insert({os_id:osId,observacao:t,usuario_id:U?.id});if(error){toast(error.message,'er');return}toast('Salva!');await ldOC(osId)}
+
+// ===== ALTERAR CATAFORÉTICO (Catalogação e ADM) =====
+function renderCataAction(osId){
+  const area=document.getElementById('cataAction');if(!area)return;
+  const cataEtapa=_e.find(e=>e.etapa_nome==='cataforetico');
+  const cataJaIniciada=cataEtapa&&cataEtapa.status!=='pendente';
+  // ADM pode alterar sempre (exceto se cataforetico já iniciou/concluiu); Catalogação também
+  const podeAlterar=isAdmin()||(podeEditar('catalogacao')&&_o.status==='em_andamento');
+  if(!podeAlterar||cataJaIniciada){area.innerHTML='';return}
+  area.innerHTML=`<button class="btn bo bsm" onclick="abrirCatalogCata(${osId})">${_o.tem_cataforetico?'Remover Cataforético':'Adicionar Cataforético'}</button>`;
+}
+function abrirCatalogCata(osId){document.getElementById('ctOsId').value=osId;document.getElementById('ctCata').checked=_o.tem_cataforetico;document.getElementById('ctObs').value='';oM('mCata')}
+async function svCatalogCata(){
+  const osId=parseInt(document.getElementById('ctOsId').value);
+  const novo=document.getElementById('ctCata').checked;
+  const obs=document.getElementById('ctObs').value.trim()||null;
+  if(novo===_o.tem_cataforetico){toast('Valor igual ao atual','er');return}
+  const btn=document.getElementById('btnCtSv');btn.disabled=true;btn.textContent='Aplicando...';
+  try{
+    const{data,error}=await sb.rpc('alterar_cataforetico_os',{p_os_id:osId,p_novo_valor:novo,p_usuario_id:U?.id||null,p_observacao:obs});
+    if(error)throw error;
+    const r=typeof data==='string'?JSON.parse(data):data;
+    if(!r.success){toast(r.error,'er');btn.disabled=false;btn.textContent='Confirmar';return}
+    toast('Cataforético atualizado!');cM('mCata');pgDet(document.getElementById('pg'),osId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar'}
+}
+
+
 async function ldMv(id){const{data}=await sb.from('movimentacoes_os').select('*,perfis(nome)').eq('os_id',id).order('data_movimentacao',{ascending:false});document.getElementById('lM').innerHTML=data?.length?`<div class="tl">${data.map(m=>`<div class="ti"><div class="td">${fh(m.data_movimentacao)} ${m.perfis?.nome?'— '+m.perfis.nome:''}</div><div class="tt">${m.etapa_origem?`<span class="be">${le(m.etapa_origem)}</span> → `:''}<span class="be">${le(m.etapa_destino)}</span>${m.observacoes?`<br><span class="ts tlt">${m.observacoes}</span>`:''}</div></div>`).join('')}</div>`:'<p class="tlt">Nenhuma.</p>'}
 async function ldHP(id){const{data}=await sb.from('historico_prazo').select('*,perfis(nome)').eq('os_id',id).order('criado_em',{ascending:false});document.getElementById('lP').innerHTML=data?.length?`<div class="tl">${data.map(h=>`<div class="ti"><div class="td">${fh(h.criado_em)} ${h.perfis?.nome?'— '+h.perfis.nome:''}</div><div class="tt"><strong>${le(h.etapa_nome)}</strong>: ${fd(h.prazo_anterior)} → ${fd(h.novo_prazo)}<br><span class="ts tlt">${h.justificativa}</span></div></div>`).join('')}</div>`:'<p class="tlt">Nenhuma.</p>'}
 function stb(t,btn){document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('tp'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');btn.classList.add('on')}
-async function avE(id){if(!podeEditar(_o.etapa_atual)){toast('Sem permissão','er');return}if(!confirm('Avançar etapa?'))return;const{data,error}=await sb.rpc('mover_os_proxima_etapa',{p_os_id:id,p_usuario_id:U?.id||null,p_observacoes:null});if(error){toast(error.message,'er');return}const r=typeof data==='string'?JSON.parse(data):data;if(!r.success){toast(r.error,'er');return}toast(r.message);pgDet(document.getElementById('pg'),id)}
+async function avE(id){if(!isAdmin()&&!podeEditar(_o.etapa_atual)){toast('Sem permissão','er');return}if(!confirm('Avançar etapa?'))return;const{data,error}=await sb.rpc('mover_os_proxima_etapa',{p_os_id:id,p_usuario_id:U?.id||null,p_observacoes:null});if(error){toast(error.message,'er');return}const r=typeof data==='string'?JSON.parse(data):data;if(!r.success){toast(r.error,'er');return}toast(r.message);pgDet(document.getElementById('pg'),id)}
 async function poOS(id){if(!confirm('Marcar como postado?'))return;await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id);toast('Postado!');pgDet(document.getElementById('pg'),id)}
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
 async function svPrz(){const eid=parseInt(document.getElementById('pEid').value),nd=document.getElementById('pDt').value,j=document.getElementById('pJt').value.trim();if(!nd||!j){toast('Preencha tudo','er');return}const{error}=await sb.rpc('alterar_prazo_etapa',{p_etapa_id:eid,p_novo_prazo:nd,p_justificativa:j,p_usuario_id:U?.id||null});if(error){toast(error.message,'er');return}toast('Prazo alterado!');cM('mPrz');const id=location.hash.split('/')[1];pgDet(document.getElementById('pg'),id)}
