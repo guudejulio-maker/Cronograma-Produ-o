@@ -160,18 +160,20 @@ function formatPeso(v){
   const n=Number(v||0);
   return n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3});
 }
-function pesoVolumeOS(volume){
+function pesoFromVolume(volume){
   if(volume===null||volume===undefined)return 0;
-  return parsePeso(String(volume).replace(/\s*kg/ig,''))||0;
+  const limpo=String(volume).replace(/\s*kg/ig,'').trim();
+  const n=parsePesoInput(limpo);
+  return Number.isFinite(n)?n:0;
 }
-function pesoEntradaFlashReal(ctrl,os){
-  const pc=Number(ctrl?.peso_kg||0);
-  const pv=pesoVolumeOS(os?.volume);
-  if(pc>0&&pv>0){
-    const ratio=pc/pv;
-    if(ratio>900&&ratio<1100)return pv;
+function pesoEntradaFlashCorrigido(ctrl,os){
+  const pesoCtrl=Number(ctrl?.peso_kg||0);
+  const pesoOs=pesoFromVolume(os?.volume);
+  if(pesoCtrl>0&&pesoOs>0){
+    const ratio=pesoCtrl/pesoOs;
+    if(ratio>900&&ratio<1100)return pesoOs;
   }
-  return pc||pv||0;
+  return pesoCtrl||pesoOs||0;
 }
 
 const NAV=[
@@ -403,25 +405,26 @@ async function pgDet(el,id){
 
 // ===== CONTROLE DO FLASH (com saídas parciais e finalização com peso) =====
 async function loadFlashCtrl(osId){
-  const[r1,r2,r3]=await Promise.all([
-    sb.from('flash_controle').select('*').eq('os_id',osId).maybeSingle(),
-    sb.from('flash_fotos').select('*').eq('os_id',osId).order('criado_em'),
-    sb.from('flash_saidas_parciais').select('*,perfis(nome)').eq('os_id',osId).order('criado_em',{ascending:false})
-  ]);
-  const ctrl=r1.data;const fotos=r2.data||[];const saidas=r3.data||[];
-  const fEnt=fotos.filter(f=>f.tipo_foto==='entrada');
-  const fSai=fotos.filter(f=>f.tipo_foto==='saida');
   const cont=document.getElementById('flashCtrlContent');
-  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
-  const pesoSaida=ctrl?.peso_saida_total||0;
-  const completo=pesoEntrada>0&&pesoSaida>=pesoEntrada;
-  const pct=pesoEntrada>0?Math.min(100,(pesoSaida/pesoEntrada)*100):0;
-  const emAndamento=_o.status==='em_andamento';
-  const canManage=isAdmin()||emAndamento; // ADM sempre; demais só em andamento
-  const canDelete=isAdmin(); // exclusão só ADM
-  const canFinalize=emAndamento&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
+  try{
+    const[r1,r2,r3]=await Promise.all([
+      sb.from('flash_controle').select('*').eq('os_id',osId).maybeSingle(),
+      sb.from('flash_fotos').select('*').eq('os_id',osId).order('criado_em'),
+      sb.from('flash_saidas_parciais').select('*,perfis(nome)').eq('os_id',osId).order('criado_em',{ascending:false})
+    ]);
+    const ctrl=r1.data;const fotos=r2.data||[];const saidas=r3.data||[];
+    const fEnt=fotos.filter(f=>f.tipo_foto==='entrada');
+    const fSai=fotos.filter(f=>f.tipo_foto==='saida');
+    const pesoEntrada=pesoEntradaFlashCorrigido(ctrl,_o);
+    const pesoSaida=ctrl?.peso_saida_total||0;
+    const completo=pesoEntrada>0&&pesoSaida>=pesoEntrada;
+    const pct=pesoEntrada>0?Math.min(100,(pesoSaida/pesoEntrada)*100):0;
+    const emAndamento=_o.status==='em_andamento';
+    const canManage=isAdmin()||emAndamento; // ADM sempre; demais só em andamento
+    const canDelete=isAdmin(); // exclusão só ADM
+    const canFinalize=emAndamento&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
 
-  cont.innerHTML=`
+    cont.innerHTML=`
     <div class="fr mb16">
       <div><div class="txs tlt" style="text-transform:uppercase">Cor</div><div class="mt8"><span class="bdg b-${ctrl?.cor||''}" style="font-size:14px">${COR_LBL[ctrl?.cor]||'—'}</span></div></div>
       <div><div class="txs tlt" style="text-transform:uppercase">Peso Entrada</div><div class="mt8" style="font-size:18px;font-weight:600">${formatPeso(pesoEntrada)} KG</div></div>
@@ -448,6 +451,10 @@ async function loadFlashCtrl(osId){
       <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas Parciais (${saidas.length})</h4>
       ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}${canDelete&&emAndamento?`<button class="btn ber bsm mt8" onclick="rmSaidaParcial(${s.id},${osId})">Excluir saída</button>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída parcial registrada.</p>'}
     </div>`;
+  }catch(err){
+    console.error('Erro ao carregar controle do flash',err);
+    cont.innerHTML='<div class="empty"><h3>Erro ao carregar o Flash</h3><p>Tente atualizar a página.</p></div>';
+  }
 }
 
 async function addMoreFlashFotos(osId,tipo,input){
@@ -502,8 +509,7 @@ async function abrirFinFlash(osId){
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   document.getElementById('fnOsId').value=osId;
   document.getElementById('fnObs').value='';
-  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
-  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(pesoEntrada)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-pesoEntrada)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
+  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl.peso_kg)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-ctrl.peso_kg)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
   oM('mFinFlash');
 }
 async function confirmarFinFlash(){
@@ -512,8 +518,7 @@ async function confirmarFinFlash(){
   if(!obs){toast('Informe a observação de finalização','er');return}
   // Revalidar peso no servidor
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
-  const pesoEntrada=pesoEntradaFlashReal(ctrl,_o);
-  if(!ctrl||ctrl.peso_saida_total<pesoEntrada){toast('Peso de saída insuficiente para finalizar','er');return}
+  if(!ctrl||ctrl.peso_saida_total<ctrl.peso_kg){toast('Peso de saída insuficiente para finalizar','er');return}
   const btn=document.getElementById('btnFnCf');btn.disabled=true;btn.textContent='Finalizando...';
   try{
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
