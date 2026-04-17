@@ -79,12 +79,51 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 .bdg-atraso{display:inline-block;background:var(--erb);color:var(--ert);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
 .bdg-nopraz{display:inline-block;background:var(--okb);color:var(--okt);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
 .prz-orig{font-weight:600;color:var(--pri)}
+.pub-wrap{min-height:100vh;background:#FAF8F5;display:flex;flex-direction:column}
+.pub-hd{background:linear-gradient(135deg,#0F1B33 0%,#1B2A4A 60%,#2D4A7A 100%);padding:32px 24px;text-align:center}
+.pub-hd .logo{font-size:13px;color:#D4A853;letter-spacing:4px;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+.pub-hd h1{font-size:22px;font-weight:600;color:#fff}.pub-hd .sub{font-size:13px;color:rgba(255,255,255,.5);margin-top:4px}
+.pub-ct{max-width:640px;width:100%;margin:0 auto;padding:24px 20px;flex:1}
+.pub-prev{background:linear-gradient(135deg,#1B2A4A 0%,#2D4A7A 100%);border-radius:14px;padding:24px;text-align:center;margin-top:20px}
+.pub-prev .lbl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.5)}
+.pub-prev .dt{font-size:28px;font-weight:700;color:#fff;margin:8px 0 4px}
+.pub-prev .sub2{font-size:13px;color:#D4A853}
+.pub-step{display:flex;align-items:flex-start;gap:14px}
+.pub-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;border:2px solid var(--brd);background:#fff;color:var(--txm);flex-shrink:0}
+.pub-dot.dn{background:var(--ok);border-color:var(--ok);color:#fff}
+.pub-dot.cr{background:var(--inf);border-color:var(--inf);color:#fff;box-shadow:0 0 0 6px rgba(37,99,235,.15);animation:pu 2s infinite}
+.pub-line{width:2px;min-height:28px;background:var(--brd);margin:4px auto}.pub-line.dn{background:var(--ok)}
+.pub-sn{font-size:14px;font-weight:500;padding:6px 0 28px}.pub-sn.dn{color:var(--ok)}.pub-sn.cr{color:var(--inf);font-weight:600}.pub-sn.pd{color:var(--txm)}
+.pub-ss{font-size:12px;color:var(--txm);margin-top:2px}.pub-ss.dn{color:var(--ok)}
+.pub-foot{text-align:center;padding:20px;font-size:12px;color:var(--txm)}
+.pub-upd{font-size:12px;color:var(--txm);display:flex;align-items:center;justify-content:center;gap:4px;margin-top:12px}
+.pub-blink{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:blink 3s infinite}
+@keyframes blink{0%,90%,100%{opacity:1}95%{opacity:.3}}
+.pub-eb{display:inline-flex;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--wnb);color:var(--wnt)}
+.pub-sb{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600}
+.pub-sb.and{background:var(--infb);color:var(--inft)}.pub-sb.fin{background:var(--okb);color:var(--okt)}.pub-sb.pos{background:#F3E8FF;color:#6B21A8}.pub-sb.can{background:var(--erb);color:var(--ert)}
+.pub-ig{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pub-il .lb{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txm);font-weight:500;margin-bottom:4px}
+.pub-il .vl{font-size:16px;font-weight:600;color:var(--pri)}.pub-il .vl.sm{font-size:14px;font-weight:500}
+.cor-ouro{background:#FEF3C7;color:#92400E;padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
+.cor-prata{background:#F3F4F6;color:#374151;padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
+.cor-diamante{background:#EDE9FE;color:#5B21B6;padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
 @media(max-width:768px){.side{transform:translateX(-100%)}.side.open{transform:translateX(0)}.sov.on{display:block}.mtog{display:flex}.mn{margin-left:0;padding:72px 16px 20px}.ph{flex-direction:column;align-items:flex-start}.fr,.fr3{grid-template-columns:1fr}.fil{flex-direction:column;align-items:stretch}.fil .fc{width:100%;min-width:auto}.stats{grid-template-columns:repeat(2,1fr);gap:10px}.st{padding:14px}.stv{font-size:24px}.g2{grid-template-columns:1fr}.lb{padding:32px 24px}.kc{min-width:260px}.foto-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}}
 </style>
 </head>
 <body>
 <div id="vLogin" style="display:none"><div class="lw"><div class="lb"><div class="logo">Scarlat Galvânica</div><h1>Cronograma de Produção</h1><p class="sub">Entre com suas credenciais</p><div class="lerr" id="lErr"></div><form onsubmit="doLogin(event)"><div class="fg"><label>E-mail</label><input type="email" id="iEm" class="fc" placeholder="seu@email.com" required></div><div class="fg"><label>Senha</label><input type="password" id="iPw" class="fc" placeholder="Sua senha" required></div><button type="submit" class="btn bp blg bbl mt16" id="bLog">Entrar</button></form></div></div></div>
 <div id="vApp" style="display:none"><button class="mtog" onclick="tgM()">&#9776;</button><div class="sov" id="sOv" onclick="tgM()"></div><div class="app"><aside class="side" id="sBar"><div class="side-logo"><h1>Cronograma</h1><span>Scarlat Galvânica</span></div><nav class="snav" id="sNav"></nav><div class="su"><div class="su-av" id="uA">?</div><div class="su-i"><div class="n" id="uN">...</div><div class="p" id="uP">—</div></div><button class="bout" onclick="doOut()" title="Sair"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div></aside><main class="mn" id="pg"></main></div></div>
+
+
+<!-- PUBLIC TRACKING VIEW -->
+<div id="vPublic" style="display:none">
+  <div class="pub-wrap">
+    <div class="pub-hd"><div class="logo">Scarlat Galvânica</div><h1>Acompanhamento da OS</h1><div class="sub">Visualize o status da sua mercadoria</div></div>
+    <div class="pub-ct" id="pubApp"><div style="text-align:center;padding:80px 20px"><div class="spin"></div><p style="color:var(--txl);margin-top:16px">Carregando...</p></div></div>
+    <div class="pub-foot"><span class="pub-blink"></span> Atualização automática a cada 30s<br>&copy; Scarlat Galvânica</div>
+  </div>
+</div>
 
 <!-- MODALS -->
 <div class="modal" id="mCli"><div class="mc" style="max-width:450px"><div class="mh"><h3 id="mCliTitle">Novo Cliente</h3><button class="mx" onclick="cM('mCli')">&times;</button></div><div class="mb"><input type="hidden" id="cId"><div class="fg"><label>Nome *</label><input type="text" id="cN" class="fc"></div><div class="fg"><label>Telefone</label><input type="text" id="cT" class="fc"></div><div class="fg"><label>E-mail</label><input type="email" id="cE" class="fc"></div><div class="fg"><label>Observações</label><textarea id="cObs" class="fc"></textarea></div></div><div class="mf"><button class="btn bo" onclick="cM('mCli')">Cancelar</button><button class="btn bp" onclick="svCli()">Salvar</button></div></div></div>
@@ -165,14 +204,20 @@ function ba(d){const a=al(d);return`<span class="bdg ${ac(a)}">${at(a)}</span>`}
 function diasAtraso(dataOrig,dataReal){if(!dataOrig)return 0;const orig=new Date(dataOrig+'T00:00:00');let ref;if(dataReal){ref=new Date(dataReal)}else{ref=new Date();ref.setHours(0,0,0,0)}const diff=Math.floor((ref-orig)/864e5);return diff>0?diff:0}
 function badgeAtrasoOrig(etapa){const orig=etapa.data_saida_prevista_original;if(!orig)return'';if(etapa.data_saida_real){const d=diasAtraso(orig,etapa.data_saida_real);if(d===0)return'<span class="bdg-nopraz">✓ No prazo</span>';return`<span class="bdg-atraso">+${d}d atraso</span>`}const d=diasAtraso(orig,null);if(d>0)return`<span class="bdg-atraso">+${d}d atraso</span>`;return''}
 function badgeAtrasoOS(os){const orig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;if(!orig)return'';if(os.data_conclusao){const d=diasAtraso(orig,os.data_conclusao);if(d===0)return'<span class="bdg-nopraz">✓ No prazo original</span>';return`<span class="bdg-atraso">+${d}d do original</span>`}const pAtual=os.data_prevista_conclusao;if(pAtual){const p=new Date(pAtual+'T00:00:00'),o=new Date(orig+'T00:00:00');if(p>o){const d=Math.floor((p-o)/864e5);return`<span class="bdg-atraso">+${d}d do original</span>`}}return'<span class="bdg-nopraz">No prazo original</span>'}
-// Sorting: priority by urgency then date
-function sortByUrgency(a,b){const w={vencido:0,vence_hoje:1,vence_amanha:2,no_prazo:3};const wa=w[al(a.data_prevista_conclusao)]??3;const wb=w[al(b.data_prevista_conclusao)]??3;if(wa!==wb)return wa-wb;const da=a.data_prevista_conclusao||'9999';const db=b.data_prevista_conclusao||'9999';if(da!==db)return da<db?-1:1;const ea=a.data_entrada||'9999';const eb=b.data_entrada||'9999';if(ea!==eb)return ea<eb?-1:1;return(a.numero_os||'').localeCompare(b.numero_os||'')}
+// alOrig: avalia atraso baseado no PRAZO ORIGINAL (compromisso)
+// REGRA: internamente, se passou do prazo original = ATRASADO, mesmo com previsão atual futura
+function alOrig(o){const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;if(!orig)return al(o.data_prevista_conclusao);return al(orig)}
+// Badge interno: usa prazo ORIGINAL para cor da linha (vermelho = atrasado vs original)
+function baOrig(o){const a=alOrig(o);return`<span class="bdg ${ac(a)}">${at(a)}</span>`}
+// Sorting: priority by urgency vs ORIGINAL, then by original date
+function sortByUrgency(a,b){const w={vencido:0,vence_hoje:1,vence_amanha:2,no_prazo:3};const wa=w[alOrig(a)]??3;const wb=w[alOrig(b)]??3;if(wa!==wb)return wa-wb;const oa=a.data_prevista_conclusao_original||a.data_postagem_prevista_original||a.data_prevista_conclusao||'9999';const ob=b.data_prevista_conclusao_original||b.data_postagem_prevista_original||b.data_prevista_conclusao||'9999';if(oa!==ob)return oa<ob?-1:1;const ea=a.data_entrada||'9999';const eb=b.data_entrada||'9999';if(ea!==eb)return ea<eb?-1:1;return(a.numero_os||'').localeCompare(b.numero_os||'')}
 function toast(m,t='ok'){const e=document.createElement('div');e.className=`toast t${t}`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.classList.add('show'),10);setTimeout(()=>{e.classList.remove('show');setTimeout(()=>e.remove(),300)},3500)}
 function oM(id){document.getElementById(id).classList.add('on')}function cM(id){document.getElementById(id).classList.remove('on')}
 function tgM(){document.getElementById('sBar').classList.toggle('open');document.getElementById('sOv').classList.toggle('on')}function hj(){return new Date().toISOString().split('T')[0]}
 function podeEditar(etapa){if(!U)return false;if(isAdmin())return true;return PERMS.some(p=>p.usuario_id===U.id&&p.etapa_nome===etapa&&p.pode_editar)}
 function isAdmin(){return UP&&UP.perfil==='administrador'}
 function openLightbox(url){document.getElementById('lboxImg').src=url;document.getElementById('lbox').classList.add('on')}
+function copyLinkCliente(token){if(!token){toast('Token não disponível','er');return}const url=location.origin+location.pathname+'?token='+token;navigator.clipboard.writeText(url).then(()=>toast('Link copiado! Envie ao cliente.')).catch(()=>{prompt('Copie o link:',url)})}
 function parsePesoInput(v){
   if(v===null||v===undefined)return NaN;
   let s=String(v).trim();
@@ -223,7 +268,11 @@ function rSide(){document.getElementById('sNav').innerHTML=NAV.map(n=>`<a onclic
 function go(p,pr={}){location.hash=p;document.querySelectorAll('[data-n]').forEach(a=>a.classList.toggle('on',a.dataset.n===p));document.getElementById('sBar').classList.remove('open');document.getElementById('sOv').classList.remove('on');const P=document.getElementById('pg');P.innerHTML='<div class="spin"></div>';({dashboard:pgD,['nova-os']:pgN,producao:pgP,kanban:pgK,flash:pgF,cadastros:pgCad,admin:pgA,detalhes:pgDet}[p]||pgD)(P,pr.id)}
 window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);h.startsWith('d/')?go('detalhes',{id:h.split('/')[1]}):go(h||'dashboard')});
 
-async function init(){const{data:{user}}=await sb.auth.getUser();if(!user){document.getElementById('vLogin').style.display='';document.getElementById('vApp').style.display='none';return}U=user;const{data:pf}=await sb.from('perfis').select('*').eq('id',user.id).single();UP=pf;document.getElementById('vLogin').style.display='none';document.getElementById('vApp').style.display='';rSide();if(UP){const ini=UP.nome.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();document.getElementById('uA').textContent=ini;document.getElementById('uN').textContent=UP.nome;document.getElementById('uP').textContent=UP.perfil.replace('_',' ')}const[r1,r2]=await Promise.all([sb.from('configuracoes_prazo').select('*').eq('ativo',true).order('ordem'),sb.from('permissoes_etapa').select('*')]);CP=r1.data||[];PERMS=r2.data||[];const h=location.hash.slice(1);h.startsWith('d/')?go('detalhes',{id:h.split('/')[1]}):go(h||'dashboard')}
+async function init(){
+  const urlParams=new URLSearchParams(window.location.search);
+  const pubToken=urlParams.get('token')||urlParams.get('t');
+  if(pubToken){showPublicView(pubToken);return}
+  const{data:{user}}=await sb.auth.getUser();if(!user){document.getElementById('vLogin').style.display='';document.getElementById('vApp').style.display='none';return}U=user;const{data:pf}=await sb.from('perfis').select('*').eq('id',user.id).single();UP=pf;document.getElementById('vLogin').style.display='none';document.getElementById('vApp').style.display='';rSide();if(UP){const ini=UP.nome.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();document.getElementById('uA').textContent=ini;document.getElementById('uN').textContent=UP.nome;document.getElementById('uP').textContent=UP.perfil.replace('_',' ')}const[r1,r2]=await Promise.all([sb.from('configuracoes_prazo').select('*').eq('ativo',true).order('ordem'),sb.from('permissoes_etapa').select('*')]);CP=r1.data||[];PERMS=r2.data||[];const h=location.hash.slice(1);h.startsWith('d/')?go('detalhes',{id:h.split('/')[1]}):go(h||'dashboard')}
 async function doLogin(e){e.preventDefault();const b=document.getElementById('bLog'),er=document.getElementById('lErr');b.disabled=true;b.textContent='Entrando...';er.style.display='none';try{await sb.auth.signInWithPassword({email:document.getElementById('iEm').value.trim(),password:document.getElementById('iPw').value});await init()}catch(x){er.textContent='E-mail ou senha incorretos.';er.style.display='block';b.disabled=false;b.textContent='Entrar'}}
 async function doOut(){await sb.auth.signOut();location.reload()}
 
@@ -252,7 +301,7 @@ async function uploadFlashFotos(osId,files,tipo,saidaParcialId){
 async function deleteFlashFoto(fotoId,caminho){await sb.storage.from('flash-fotos').remove([caminho]);await sb.from('flash_fotos').delete().eq('id',fotoId)}
 
 // ===== DASHBOARD =====
-async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;const[r1,r2,r3]=await Promise.all([sb.from('vw_dashboard_resumo').select('*').single(),sb.from('vw_os_por_etapa').select('*'),sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(15)]);const d=r1.data||{};document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;document.getElementById('df').textContent=d.finalizadas_hoje||0;const et=r2.data||[];document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';const os=(r3.data||[]).filter(o=>{const a=al(o.data_prevista_conclusao);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.map(o=>`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>'}
+async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;const[r1,r2,r3]=await Promise.all([sb.from('vw_dashboard_resumo').select('*').single(),sb.from('vw_os_por_etapa').select('*'),sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(15)]);const d=r1.data||{};document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;document.getElementById('df').textContent=d.finalizadas_hoje||0;const et=r2.data||[];document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.map(o=>`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>'}
 
 // ===== NOVA OS (com número automático para flash) =====
 async function pgN(el){
@@ -351,7 +400,7 @@ async function tgCliA(id,a){await sb.from('clientes').update({ativo:a}).eq('id',
 // ===== PRODUÇÃO =====
 let AO=[];
 async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">Todas as OS</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fSt" onchange="fOS()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option><option value="finalizado">Finalizado</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').order('criado_em',{ascending:false});AO=data||[];fOS()}
-function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',st=document.getElementById('fSt')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(st&&o.status!==st)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&al(o.data_prevista_conclusao)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';r.sort(sortByUrgency);document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':al(o.data_prevista_conclusao)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${ba(o.data_prevista_conclusao)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS</td></tr>'}
+function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',st=document.getElementById('fSt')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(st&&o.status!==st)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&alOrig(o)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';r.sort(sortByUrgency);document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr class="${alOrig(o)==='vencido'?'re':alOrig(o)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${baOrig(o)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS</td></tr>'}
 
 // ===== KANBAN =====
 async function pgK(el){const C=[...ET,'finalizado'];el.innerHTML=`<div class="ph"><div><h2>Painel Etapas</h2><p class="phs">Kanban — Folheação</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="kb" id="kC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','folheacao').in('status',['em_andamento','finalizada']).order('data_prevista_conclusao');const m={};C.forEach(c=>m[c]=[]);(data||[]).forEach(o=>{const e=o.etapa_atual||'entrada';if(m[e])m[e].push(o)});document.getElementById('kC').innerHTML=C.map(c=>{const l=m[c];return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(o=>`<div class="kcd" onclick="location.hash='d/${o.id}'"><div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os}</div><div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>${o.volume?`<div class="txs tlt">${o.volume}</div>`:''}<div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>${o.tem_cataforetico?'<span class="bc mt8">Cataf.</span>':''}</div>`).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`}).join('')}
@@ -416,7 +465,7 @@ async function pgDet(el,id){
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
   const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
   const canPost=isAdmin()||(os.status==='finalizada'&&podeEditar('postagem'));const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}<button class="btn bo" onclick="go('producao')">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}<button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="go('producao')">Voltar</button></div></div>
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Cliente</div><div style="font-size:16px;font-weight:500">${os.clientes?.nome||'—'}</div></div>
@@ -697,6 +746,80 @@ async function svEdDatas(){
     await sb.from('movimentacoes_os').insert({os_id:_o.id,etapa_origem:e.etapa_nome,etapa_destino:e.etapa_nome,usuario_id:U?.id,observacoes:'ADMIN: Edição de datas ['+e.etapa_nome+'] — '+changes.join('; ')+' — Motivo: '+obs});
     toast('Datas atualizadas!');cM('mEdDatas');pgDet(document.getElementById('pg'),_o.id);
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Salvar'}
+}
+
+
+// ===== PUBLIC TRACKING (cliente externo) =====
+const PUB_EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Em Processo',finalizado:'Finalizado'};
+const PUB_SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
+const PUB_COR={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
+function fdLong(d){if(!d)return'—';return new Date(d+(d.includes('T')?'':'T00:00:00')).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
+
+async function showPublicView(token){
+  const elLogin=document.getElementById('vLogin');
+  const elApp=document.getElementById('vApp');
+  const elPub=document.getElementById('vPublic');
+  if(elLogin)elLogin.style.display='none';
+  if(elApp)elApp.style.display='none';
+  if(elPub)elPub.style.display='';
+  await loadPublicOS(token);
+  setInterval(()=>loadPublicOS(token),30000);
+}
+
+async function loadPublicOS(token){
+  const app=document.getElementById('pubApp');
+  if(!app)return;
+  try{
+    const{data:os,error}=await sb.from('vw_acompanhamento_cliente').select('*').eq('token_publico',token).single();
+    if(error||!os){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri);margin-bottom:8px">OS não encontrada</h2><p style="color:var(--txl);font-size:14px">O link pode ter expirado ou ser inválido.<br>Solicite um novo link à Scarlat Galvânica.</p></div>';return}
+    let etapas=[];
+    if(os.tipo==='folheacao'){const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
+    let flashCtrl=null;
+    if(os.tipo==='flash'){const{data:fc}=await sb.from('flash_controle').select('cor').eq('os_id',os.os_id).maybeSingle();flashCtrl=fc}
+    renderPublic(os,etapas,flashCtrl);
+  }catch(e){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri)">Erro</h2><p style="color:var(--txl)">Tente novamente em instantes.</p></div>'}
+}
+
+function renderPublic(os,etapas,flashCtrl){
+  const app=document.getElementById('pubApp');if(!app)return;
+  const isFolh=os.tipo==='folheacao';
+  const scl={em_andamento:'and',finalizada:'fin',postada:'pos',cancelada:'can'};
+  const sic={em_andamento:'⏳',finalizada:'✓',postada:'📦',cancelada:'✕'};
+  let h=`<div class="card"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txm);font-weight:600;margin-bottom:16px">Informações da OS</div>
+  <div class="pub-ig">
+    <div class="pub-il"><div class="lb">Número</div><div class="vl">${os.numero_os}</div></div>
+    <div class="pub-il"><div class="lb">Cliente</div><div class="vl sm">${os.cliente_nome||'—'}</div></div>
+    <div class="pub-il"><div class="lb">Tipo</div><div class="vl sm">${isFolh?'Folheação':'Flash'}</div></div>
+    <div class="pub-il"><div class="lb">Status</div><div><span class="pub-sb ${scl[os.status]||''}">${sic[os.status]||''} ${PUB_SL[os.status]||os.status}</span></div></div>
+  </div>`;
+  if(!isFolh&&flashCtrl){h+=`<div style="margin-top:16px"><span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span></div>`}
+  if(os.status==='em_andamento'){h+=`<div style="margin-top:16px"><div class="lb" style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txm);font-weight:500;margin-bottom:6px">Etapa Atual</div><span class="pub-eb">${PUB_EL[os.etapa_atual]||os.etapa_atual}</span></div>`}
+  const prevDate=os.status==='postada'?os.data_postagem:os.status==='finalizada'?os.data_conclusao:os.previsao_conclusao;
+  const prevLabel=os.status==='postada'?'Postada em':os.status==='finalizada'?'Concluída em':'Previsão de Conclusão';
+  const prevSub=os.status==='em_andamento'?'Data estimada — pode atualizar conforme o andamento':os.status==='finalizada'?'Aguardando postagem':'Obrigado pela preferência!';
+  h+=`<div class="pub-prev"><div class="lbl">${prevLabel}</div><div class="dt">${fdLong(prevDate)}</div><div class="sub2">${prevSub}</div></div></div>`;
+  if(isFolh&&etapas.length>0){
+    h+='<div class="card"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txm);font-weight:600;margin-bottom:16px">Progresso das Etapas</div>';
+    etapas.forEach((e,i)=>{
+      const dn=e.status==='concluida',cr=e.status==='em_andamento';
+      const dc=dn?'dn':cr?'cr':'';const nc=dn?'dn':cr?'cr':'pd';
+      const ic=dn?'✓':cr?'●':(i+1);const st=dn?'Concluída':cr?'Em andamento':'Aguardando';
+      h+=`<div class="pub-step"><div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="pub-dot ${dc}">${ic}</div>${i<etapas.length-1?`<div class="pub-line ${dn?'dn':''}"></div>`:''}</div><div style="padding:6px 0 28px"><div class="pub-sn ${nc}">${PUB_EL[e.etapa_nome]||e.etapa_nome}</div><div class="pub-ss ${dn?'dn':''}">${st}</div></div></div>`;
+    });
+    h+='</div>';
+  }
+  if(!isFolh){
+    const stg=[{n:'Recebido',d:true},{n:'Em Processo',d:os.status!=='em_andamento',c:os.status==='em_andamento'},{n:'Finalizado',d:os.status==='finalizada'||os.status==='postada',c:os.status==='finalizada'},{n:'Postado',d:os.status==='postada'}];
+    h+='<div class="card"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txm);font-weight:600;margin-bottom:16px">Progresso</div>';
+    stg.forEach((s,i)=>{
+      const dn=s.d&&!s.c,cr=s.c&&!stg.slice(i+1).some(x=>x.d);
+      const ic=dn?'✓':cr?'●':(i+1);const dc=dn?'dn':cr?'cr':'';const nc=dn?'dn':cr?'cr':'pd';
+      h+=`<div class="pub-step"><div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="pub-dot ${dc}">${ic}</div>${i<stg.length-1?`<div class="pub-line ${dn?'dn':''}"></div>`:''}</div><div style="padding:6px 0 28px"><div class="pub-sn ${nc}">${s.n}</div></div></div>`;
+    });
+    h+='</div>';
+  }
+  h+=`<div class="pub-upd"><span class="pub-blink"></span>Última atualização: ${fh(os.ultima_atualizacao)}</div>`;
+  app.innerHTML=h;
 }
 
 
