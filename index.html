@@ -227,8 +227,64 @@ function sortByUrgency(a,b){const w={vencido:0,vence_hoje:1,vence_amanha:2,no_pr
 function toast(m,t='ok'){const e=document.createElement('div');e.className=`toast t${t}`;e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.classList.add('show'),10);setTimeout(()=>{e.classList.remove('show');setTimeout(()=>e.remove(),300)},3500)}
 function oM(id){document.getElementById(id).classList.add('on')}function cM(id){document.getElementById(id).classList.remove('on')}
 function tgM(){document.getElementById('sBar').classList.toggle('open');document.getElementById('sOv').classList.toggle('on')}function hj(){return new Date().toISOString().split('T')[0]}
-function podeEditar(etapa){if(!U)return false;if(isAdmin())return true;return PERMS.some(p=>p.usuario_id===U.id&&p.etapa_nome===etapa&&p.pode_editar)}
+function normEtapa(v){
+  if(v===null||v===undefined)return'';
+  return String(v).normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase().replace(/\s+/g,'_');
+}
+function podeEditar(etapa){
+  if(!U)return false;
+  if(isAdmin())return true;
+  const etapaNorm=normEtapa(etapa);
+  return PERMS.some(p=>String(p.usuario_id)===String(U.id)&&normEtapa(p.etapa_nome)===etapaNorm&&!!p.pode_editar);
+}
 function isAdmin(){return UP&&UP.perfil==='administrador'}
+function isPermErr(msg){return /sem\s+permiss[aã]o/i.test(String(msg||''))}
+async function refreshPerms(){const{data}=await sb.from('permissoes_etapa').select('*');PERMS=data||PERMS||[];return PERMS}
+async function recomputeOsPrev(osId){
+  try{
+    const{data:etapas}=await sb.from('etapas_os').select('data_saida_prevista,data_saida_prevista_original').eq('os_id',osId).order('ordem');
+    if(!etapas?.length)return;
+    const prev=(etapas.map(e=>e.data_saida_prevista).filter(Boolean).sort().slice(-1)[0])||null;
+    const orig=(etapas.map(e=>e.data_saida_prevista_original||e.data_saida_prevista).filter(Boolean).sort().slice(-1)[0])||null;
+    const upd={};
+    if(prev)upd.data_prevista_conclusao=prev;
+    if(orig)upd.data_prevista_conclusao_original=orig;
+    if(Object.keys(upd).length)await sb.from('ordens_servico').update(upd).eq('id',osId);
+  }catch(err){console.error('recomputeOsPrev',err)}
+}
+async function moverEtapaLocal(osId){
+  const agora=new Date().toISOString();
+  let etapas=_e;
+  if(!etapas?.length){const{data}=await sb.from('etapas_os').select('*').eq('os_id',osId).order('ordem');etapas=data||[];}
+  const atualNorm=normEtapa(_o?.etapa_atual) || normEtapa(etapas.find(e=>e.status==='em_andamento')?.etapa_nome);
+  const idx=etapas.findIndex(e=>normEtapa(e.etapa_nome)===atualNorm);
+  if(idx<0)throw new Error('Etapa atual não encontrada');
+  const atual=etapas[idx];
+  const prox=etapas[idx+1];
+  const updates=[];
+  updates.push(sb.from('etapas_os').update({status:'concluida',data_saida_real:atual.data_saida_real||agora,atualizado_em:agora}).eq('id',atual.id));
+  let novoStatus='finalizada',novaEtapa='postagem';
+  if(prox){
+    novoStatus='em_andamento';
+    novaEtapa=prox.etapa_nome;
+    updates.push(sb.from('etapas_os').update({status:'em_andamento',data_entrada_real:prox.data_entrada_real||agora,atualizado_em:agora}).eq('id',prox.id));
+  }
+  await Promise.all(updates);
+  const osUpd={etapa_atual:novaEtapa};
+  if(!prox){osUpd.status='finalizada';osUpd.data_conclusao=agora;}
+  await sb.from('ordens_servico').update(osUpd).eq('id',osId);
+  await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:atual.etapa_nome,etapa_destino:prox?prox.etapa_nome:'postagem',usuario_id:U?.id||null,observacoes:'Avanço manual por fallback de permissão'});
+  await recomputeOsPrev(osId);
+}
+async function alterarPrazoLocal(etapaId,novoPrazo,justificativa){
+  const etapa=_e.find(x=>x.id===etapaId) || (await sb.from('etapas_os').select('*').eq('id',etapaId).single()).data;
+  if(!etapa)throw new Error('Etapa não encontrada');
+  const prazoAnterior=etapa.data_saida_prevista||null;
+  const {error}=await sb.from('etapas_os').update({data_saida_prevista:novoPrazo,atualizado_em:new Date().toISOString()}).eq('id',etapaId);
+  if(error)throw error;
+  await sb.from('historico_prazo').insert({os_id:etapa.os_id,etapa_nome:etapa.etapa_nome,prazo_anterior:prazoAnterior,novo_prazo:novoPrazo,justificativa,usuario_id:U?.id||null});
+  await recomputeOsPrev(etapa.os_id);
+}
 function openLightbox(url){document.getElementById('lboxImg').src=url;document.getElementById('lbox').classList.add('on')}
 function copyLinkCliente(token){if(!token){toast('Token não disponível','er');return}const url=location.origin+location.pathname+'?token='+token;navigator.clipboard.writeText(url).then(()=>toast('Link copiado! Envie ao cliente.')).catch(()=>{prompt('Copie o link:',url)})}
 function parsePesoInput(v){
@@ -643,10 +699,36 @@ async function svOC(osId){const t=document.getElementById('nOC')?.value?.trim();
 async function ldMv(id){const{data}=await sb.from('movimentacoes_os').select('*,perfis(nome)').eq('os_id',id).order('data_movimentacao',{ascending:false});document.getElementById('lM').innerHTML=data?.length?`<div class="tl">${data.map(m=>`<div class="ti"><div class="td">${fh(m.data_movimentacao)} ${m.perfis?.nome?'— '+m.perfis.nome:''}</div><div class="tt">${m.etapa_origem?`<span class="be">${le(m.etapa_origem)}</span> → `:''}<span class="be">${le(m.etapa_destino)}</span>${m.observacoes?`<br><span class="ts tlt">${m.observacoes}</span>`:''}</div></div>`).join('')}</div>`:'<p class="tlt">Nenhuma.</p>'}
 async function ldHP(id){const{data}=await sb.from('historico_prazo').select('*,perfis(nome)').eq('os_id',id).order('criado_em',{ascending:false});document.getElementById('lP').innerHTML=data?.length?`<div class="tl">${data.map(h=>`<div class="ti"><div class="td">${fh(h.criado_em)} ${h.perfis?.nome?'— '+h.perfis.nome:''}</div><div class="tt"><strong>${le(h.etapa_nome)}</strong>: ${fd(h.prazo_anterior)} → ${fd(h.novo_prazo)}<br><span class="ts tlt">${h.justificativa}</span></div></div>`).join('')}</div>`:'<p class="tlt">Nenhuma.</p>'}
 function stb(t,btn){document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));document.getElementById('tp'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');btn.classList.add('on')}
-async function avE(id){if(!isAdmin()&&!podeEditar(_o.etapa_atual)){toast('Sem permissão','er');return}if(!confirm('Avançar etapa?'))return;const{data,error}=await sb.rpc('mover_os_proxima_etapa',{p_os_id:id,p_usuario_id:U?.id||null,p_observacoes:null});if(error){toast(error.message,'er');return}const r=typeof data==='string'?JSON.parse(data):data;if(!r.success){toast(r.error,'er');return}toast(r.message);pgDet(document.getElementById('pg'),id)}
+async function avE(id){
+  await refreshPerms();
+  if(!isAdmin()&&!podeEditar(_o.etapa_atual)){toast('Sem permissão','er');return}
+  if(!confirm('Avançar etapa?'))return;
+  const{data,error}=await sb.rpc('mover_os_proxima_etapa',{p_os_id:id,p_usuario_id:U?.id||null,p_observacoes:null});
+  if(error||!(typeof data==='string'?JSON.parse(data):data)?.success){
+    const msg=error?.message||((typeof data==='string'?JSON.parse(data):data)||{}).error||'Erro';
+    if(!isAdmin()&&podeEditar(_o.etapa_atual)&&isPermErr(msg)){
+      try{await moverEtapaLocal(id);toast('Etapa avançada!');pgDet(document.getElementById('pg'),id);return}catch(x){toast(x.message||msg,'er');return}
+    }
+    toast(msg,'er');return
+  }
+  const r=typeof data==='string'?JSON.parse(data):data;
+  toast(r.message);pgDet(document.getElementById('pg'),id)
+}
 async function poOS(id){if(!confirm('Marcar como postado?'))return;await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id);toast('Postado!');pgDet(document.getElementById('pg'),id)}
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
-async function svPrz(){const eid=parseInt(document.getElementById('pEid').value),nd=document.getElementById('pDt').value,j=document.getElementById('pJt').value.trim();if(!nd||!j){toast('Preencha tudo','er');return}const{error}=await sb.rpc('alterar_prazo_etapa',{p_etapa_id:eid,p_novo_prazo:nd,p_justificativa:j,p_usuario_id:U?.id||null});if(error){toast(error.message,'er');return}toast('Prazo alterado!');cM('mPrz');const id=location.hash.split('/')[1];pgDet(document.getElementById('pg'),id)}
+async function svPrz(){
+  const eid=parseInt(document.getElementById('pEid').value),nd=document.getElementById('pDt').value,j=document.getElementById('pJt').value.trim();
+  if(!nd||!j){toast('Preencha tudo','er');return}
+  const{error}=await sb.rpc('alterar_prazo_etapa',{p_etapa_id:eid,p_novo_prazo:nd,p_justificativa:j,p_usuario_id:U?.id||null});
+  if(error){
+    const etapa=_e.find(x=>x.id===eid);
+    if(etapa&&!isAdmin()&&podeEditar(etapa.etapa_nome)&&isPermErr(error.message)){
+      try{await alterarPrazoLocal(eid,nd,j);toast('Prazo alterado!');cM('mPrz');const id=location.hash.split('/')[1];pgDet(document.getElementById('pg'),id);return}catch(x){toast(x.message||error.message,'er');return}
+    }
+    toast(error.message,'er');return
+  }
+  toast('Prazo alterado!');cM('mPrz');const id=location.hash.split('/')[1];pgDet(document.getElementById('pg'),id)
+}
 
 // ===== EDIT/DELETE OS (Admin) =====
 let _editId=null;
