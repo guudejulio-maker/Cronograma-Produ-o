@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -159,6 +160,14 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="fr"><div class="fg"><label>Previsão Entrada</label><input type="date" id="edEntPrev" class="fc"></div><div class="fg"><label>Previsão Saída</label><input type="date" id="edSaiPrev" class="fc"></div></div>
 <div class="fg"><label>Observação *</label><textarea id="edDtObs" class="fc" placeholder="Motivo da correção..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mEdDatas')">Cancelar</button><button class="btn bp" onclick="svEdDatas()" id="btnEdDtSv">Salvar</button></div></div></div>
+
+<!-- Modal Atraso do Cliente (Catalogação) -->
+<div class="modal" id="mAtrCli"><div class="mc" style="max-width:500px"><div class="mh"><h3>Registrar Atraso do Cliente</h3><button class="mx" onclick="cM('mAtrCli')">&times;</button></div><div class="mb">
+<input type="hidden" id="acOsId">
+<div class="peso-box"><p class="ts">Ao registrar atraso do cliente, o cronograma inteiro será empurrado para frente.<br>O <strong>prazo original</strong> e a <strong>previsão atual</strong> serão recalculados.<br>A empresa não será penalizada por esse atraso.</p></div>
+<div class="fg mt16"><label>Quantos dias o cliente atrasou? *</label><input type="number" id="acDias" class="fc" min="1" placeholder="Ex: 5"></div>
+<div class="fg"><label>Justificativa * (será visível ao cliente)</label><textarea id="acJust" class="fc" placeholder="Ex: Cliente demorou para aprovar modelo..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mAtrCli')">Cancelar</button><button class="btn ba" onclick="svAtrasoCliente()" id="btnAcSv">Registrar Atraso</button></div></div></div>
 
 <!-- Modal Saída Parcial -->
 <div class="modal" id="mSaidaP"><div class="mc" style="max-width:550px"><div class="mh"><h3>Nova Saída Parcial</h3><button class="mx" onclick="cM('mSaidaP')">&times;</button></div><div class="mb">
@@ -643,7 +652,20 @@ async function svPrz(){const eid=parseInt(document.getElementById('pEid').value)
 // ===== EDIT/DELETE OS (Admin) =====
 let _editId=null;
 async function openEditOS(id){if(!isAdmin())return;_editId=id;const{data:os}=await sb.from('ordens_servico').select('*').eq('id',id).single();if(!os)return;await loadCliSelect('edCli',os.cliente_id);document.getElementById('edNum').value=os.numero_os||'';document.getElementById('edData').value=os.data_entrada||'';document.getElementById('edTipo').value=os.tipo;document.getElementById('edSt').value=os.status;document.getElementById('edVol').value=os.volume||'';document.getElementById('edCata').checked=os.tem_cataforetico;document.getElementById('edObs').value=os.observacoes||'';oM('mEditOS')}
-async function saveEditOS(){if(!isAdmin()||!_editId)return;const py={numero_os:document.getElementById('edNum').value.trim(),data_entrada:document.getElementById('edData').value,cliente_id:parseInt(document.getElementById('edCli').value),tipo:document.getElementById('edTipo').value,status:document.getElementById('edSt').value,tem_cataforetico:document.getElementById('edCata').checked,volume:document.getElementById('edVol').value.trim()||null,observacoes:document.getElementById('edObs').value.trim()||null};const{error}=await sb.from('ordens_servico').update(py).eq('id',_editId);if(error){toast(error.message,'er');return}toast('Atualizada!');cM('mEditOS');const h=location.hash.slice(1);if(h.startsWith('d/'))pgDet(document.getElementById('pg'),_editId);else go(h||'producao')}
+async function saveEditOS(){
+  if(!isAdmin()||!_editId)return;
+  const novaData=document.getElementById('edData').value;
+  const py={numero_os:document.getElementById('edNum').value.trim(),data_entrada:novaData,cliente_id:parseInt(document.getElementById('edCli').value),tipo:document.getElementById('edTipo').value,status:document.getElementById('edSt').value,tem_cataforetico:document.getElementById('edCata').checked,volume:document.getElementById('edVol').value.trim()||null,observacoes:document.getElementById('edObs').value.trim()||null};
+  const{error}=await sb.from('ordens_servico').update(py).eq('id',_editId);
+  if(error){toast(error.message,'er');return}
+  // Se mudou data de entrada, recalcular cronograma completo
+  if(_o&&_o.data_entrada!==novaData&&_o.tipo==='folheacao'){
+    const{data:rc,error:erc}=await sb.rpc('recalcular_cronograma_completo',{p_os_id:_editId,p_nova_data_entrada:novaData,p_usuario_id:U?.id||null,p_observacao:'Alteração de data de entrada'});
+    if(erc)console.error('Erro recalc:',erc);
+    else toast('Cronograma recalculado!');
+  }else{toast('Atualizada!')}
+  cM('mEditOS');const h=location.hash.slice(1);if(h.startsWith('d/'))pgDet(document.getElementById('pg'),_editId);else go(h||'producao');
+}
 async function delOS(id,num){if(!isAdmin())return;if(!confirm(`Excluir OS ${num}? Irreversível.`))return;if(!confirm(`CONFIRMAR?`))return;const{error}=await sb.from('ordens_servico').delete().eq('id',id);if(error){toast(error.message,'er');return}toast('Excluída!');go('producao')}
 
 // ===== ADMIN =====
@@ -691,8 +713,11 @@ function renderCataAction(osId){
   const cataEtapa=_e.find(e=>e.etapa_nome==='cataforetico');
   const cataJaIniciada=cataEtapa&&cataEtapa.status!=='pendente';
   const podeAlterar=isAdmin()||(podeEditar('catalogacao')&&_o.status==='em_andamento');
-  if(!podeAlterar||cataJaIniciada){area.innerHTML='';return}
-  area.innerHTML=`<button class="btn bo bsm" onclick="abrirCatalogCata(${osId})">${_o.tem_cataforetico?'Remover Cataforético':'Adicionar Cataforético'}</button>`;
+  const podeCatalog=isAdmin()||(podeEditar('catalogacao')&&_o.status==='em_andamento');
+  let btns='';
+  if(podeAlterar&&!cataJaIniciada){btns+=`<button class="btn bo bsm" onclick="abrirCatalogCata(${osId})">${_o.tem_cataforetico?'Remover Cataf.':'Adicionar Cataf.'}</button> `}
+  if(podeCatalog&&_o.status==='em_andamento'){btns+=`<button class="btn ba bsm" onclick="abrirAtrasoCliente(${osId})">Atraso do Cliente</button>`}
+  area.innerHTML=btns;
 }
 function abrirCatalogCata(osId){document.getElementById('ctOsId').value=osId;document.getElementById('ctCata').checked=_o.tem_cataforetico;document.getElementById('ctObs').value='';oM('mCata')}
 async function svCatalogCata(){
@@ -754,6 +779,24 @@ async function svEdDatas(){
 }
 
 
+// ===== ATRASO DO CLIENTE (Catalogação) =====
+function abrirAtrasoCliente(osId){document.getElementById('acOsId').value=osId;document.getElementById('acDias').value='';document.getElementById('acJust').value='';oM('mAtrCli')}
+async function svAtrasoCliente(){
+  const osId=parseInt(document.getElementById('acOsId').value);
+  const dias=parseInt(document.getElementById('acDias').value);
+  const just=document.getElementById('acJust').value.trim();
+  if(!dias||dias<=0){toast('Informe dias válidos','er');return}
+  if(!just){toast('Informe a justificativa','er');return}
+  const btn=document.getElementById('btnAcSv');btn.disabled=true;btn.textContent='Registrando...';
+  try{
+    const{data,error}=await sb.rpc('registrar_atraso_cliente',{p_os_id:osId,p_dias_atraso:dias,p_usuario_id:U?.id||null,p_justificativa:just});
+    if(error)throw error;
+    const r=typeof data==='string'?JSON.parse(data):data;
+    if(!r.success){toast(r.error,'er');btn.disabled=false;btn.textContent='Registrar Atraso';return}
+    toast(r.message);cM('mAtrCli');pgDet(document.getElementById('pg'),osId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Registrar Atraso'}
+}
+
 // ===== PUBLIC TRACKING (cliente externo) =====
 const PUB_EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Em Processo',finalizado:'Finalizado'};
 const PUB_SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
@@ -785,7 +828,7 @@ async function loadPublicOS(token){
   }catch(e){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri)">Erro</h2><p style="color:var(--txl)">Tente novamente em instantes.</p></div>'}
 }
 
-function renderPublic(os,etapas,flashCtrl){
+async function renderPublic(os,etapas,flashCtrl){
   const app=document.getElementById('pubApp');if(!app)return;
   const isFolh=os.tipo==='folheacao';
   const scl={em_andamento:'and',finalizada:'fin',postada:'pos',cancelada:'can'};
@@ -821,6 +864,13 @@ function renderPublic(os,etapas,flashCtrl){
       const ic=dn?'✓':cr?'●':(i+1);const dc=dn?'dn':cr?'cr':'';const nc=dn?'dn':cr?'cr':'pd';
       h+=`<div class="pub-step"><div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="pub-dot ${dc}">${ic}</div>${i<stg.length-1?`<div class="pub-line ${dn?'dn':''}"></div>`:''}</div><div style="padding:6px 0 28px"><div class="pub-sn ${nc}">${s.n}</div></div></div>`;
     });
+    h+='</div>';
+  }
+  // Justificativas visíveis ao cliente
+  const{data:justifs}=await sb.from('movimentacoes_os').select('justificativa_cliente,data_movimentacao').eq('os_id',os.os_id).eq('visivel_cliente',true).not('justificativa_cliente','is',null).order('data_movimentacao',{ascending:false});
+  if(justifs&&justifs.length>0){
+    h+='<div class="pub-card"><div class="pub-card-title">Atualizações de Prazo</div>';
+    justifs.forEach(j=>{h+=`<div style="padding:12px 0;border-bottom:1px solid #F0EDE8"><div style="font-size:13px;color:#1B2A4A;line-height:1.5">${j.justificativa_cliente}</div><div style="font-size:11px;color:#9CA3AF;margin-top:6px">${fdLong(j.data_movimentacao)}</div></div>`});
     h+='</div>';
   }
   h+=`<div class="pub-upd"><span class="pub-blink"></span>Última atualização: ${fh(os.ultima_atualizacao)}</div>`;
