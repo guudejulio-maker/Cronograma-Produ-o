@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -655,15 +654,20 @@ async function openEditOS(id){if(!isAdmin())return;_editId=id;const{data:os}=awa
 async function saveEditOS(){
   if(!isAdmin()||!_editId)return;
   const novaData=document.getElementById('edData').value;
-  const py={numero_os:document.getElementById('edNum').value.trim(),data_entrada:novaData,cliente_id:parseInt(document.getElementById('edCli').value),tipo:document.getElementById('edTipo').value,status:document.getElementById('edSt').value,tem_cataforetico:document.getElementById('edCata').checked,volume:document.getElementById('edVol').value.trim()||null,observacoes:document.getElementById('edObs').value.trim()||null};
+  const novoCata=document.getElementById('edCata').checked;
+  const py={numero_os:document.getElementById('edNum').value.trim(),data_entrada:novaData,cliente_id:parseInt(document.getElementById('edCli').value),tipo:document.getElementById('edTipo').value,status:document.getElementById('edSt').value,tem_cataforetico:novoCata,volume:document.getElementById('edVol').value.trim()||null,observacoes:document.getElementById('edObs').value.trim()||null};
   const{error}=await sb.from('ordens_servico').update(py).eq('id',_editId);
   if(error){toast(error.message,'er');return}
-  // Se mudou data de entrada, recalcular cronograma completo
-  if(_o&&_o.data_entrada!==novaData&&_o.tipo==='folheacao'){
-    const{data:rc,error:erc}=await sb.rpc('recalcular_cronograma_completo',{p_os_id:_editId,p_nova_data_entrada:novaData,p_usuario_id:U?.id||null,p_observacao:'Alteração de data de entrada'});
+  // Sempre recalcular cronograma ao salvar folheação (garante consistência)
+  if(py.tipo==='folheacao'&&py.status==='em_andamento'){
+    const{error:erc}=await sb.rpc('recalcular_cronograma_completo',{p_os_id:_editId,p_nova_data_entrada:novaData,p_usuario_id:U?.id||null,p_observacao:'Edição ADM — cronograma recalculado'});
     if(erc)console.error('Erro recalc:',erc);
-    else toast('Cronograma recalculado!');
-  }else{toast('Atualizada!')}
+  }
+  // Se mudou cataforético, recalcular via função específica
+  if(_o&&_o.tem_cataforetico!==novoCata&&py.tipo==='folheacao'){
+    await sb.rpc('alterar_cataforetico_os',{p_os_id:_editId,p_novo_valor:novoCata,p_usuario_id:U?.id||null,p_observacao:'Alteração via edição ADM'});
+  }
+  toast('OS atualizada! Cronograma recalculado.');
   cM('mEditOS');const h=location.hash.slice(1);if(h.startsWith('d/'))pgDet(document.getElementById('pg'),_editId);else go(h||'producao');
 }
 async function delOS(id,num){if(!isAdmin())return;if(!confirm(`Excluir OS ${num}? Irreversível.`))return;if(!confirm(`CONFIRMAR?`))return;const{error}=await sb.from('ordens_servico').delete().eq('id',id);if(error){toast(error.message,'er');return}toast('Excluída!');go('producao')}
@@ -728,7 +732,7 @@ async function svCatalogCata(){
 }
 
 // ===== VOLTAR ETAPA (Admin) =====
-function abrirVoltarEtapa(osId){document.getElementById('veOsId').value=osId;document.getElementById('veObs').value='';oM('mVoltarE')}
+function abrirVoltarEtapa(osId){document.getElementById('veOsId').value=osId;document.getElementById('veObs').value='';const btn=document.getElementById('btnVeSv');btn.disabled=false;btn.textContent='Voltar Etapa';oM('mVoltarE')}
 async function confirmarVoltarEtapa(){
   const osId=parseInt(document.getElementById('veOsId').value);const obs=document.getElementById('veObs').value.trim();
   if(!obs){toast('Informe o motivo','er');return}
@@ -780,7 +784,7 @@ async function svEdDatas(){
 
 
 // ===== ATRASO DO CLIENTE (Catalogação) =====
-function abrirAtrasoCliente(osId){document.getElementById('acOsId').value=osId;document.getElementById('acDias').value='';document.getElementById('acJust').value='';oM('mAtrCli')}
+function abrirAtrasoCliente(osId){document.getElementById('acOsId').value=osId;document.getElementById('acDias').value='';document.getElementById('acJust').value='';const btn=document.getElementById('btnAcSv');btn.disabled=false;btn.textContent='Registrar Atraso';oM('mAtrCli')}
 async function svAtrasoCliente(){
   const osId=parseInt(document.getElementById('acOsId').value);
   const dias=parseInt(document.getElementById('acDias').value);
