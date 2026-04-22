@@ -909,14 +909,21 @@ async function loadPublicOS(token){
     let etapas=[];
     if(os.tipo==='folheacao'){const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
     let flashCtrl=null;
-    if(os.tipo==='flash'){const{data:fc}=await sb.from('flash_controle').select('cor').eq('os_id',os.os_id).maybeSingle();flashCtrl=fc}
-    renderPublic(os,etapas,flashCtrl);
+    let flashFotosEntrada=[];
+    if(os.tipo==='flash'){
+      const{data:fc}=await sb.from('flash_controle').select('cor').eq('os_id',os.os_id).maybeSingle();
+      flashCtrl=fc;
+      const{data:ff}=await sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','entrada').order('criado_em',{ascending:true});
+      flashFotosEntrada=ff||[];
+    }
+    renderPublic(os,etapas,flashCtrl,flashFotosEntrada);
   }catch(e){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri)">Erro</h2><p style="color:var(--txl)">Tente novamente em instantes.</p></div>'}
 }
 
-async function renderPublic(os,etapas,flashCtrl){
+async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
   const app=document.getElementById('pubApp');if(!app)return;
   const isFolh=os.tipo==='folheacao';
+  fotosEntrada=fotosEntrada||[];
   const scl={em_andamento:'and',finalizada:'fin',postada:'pos',cancelada:'can'};
   const sic={em_andamento:'⏳',finalizada:'✓',postada:'📦',cancelada:'✕'};
   let h=`<div class="pub-card"><div class="pub-card-title">Informações da OS</div>
@@ -932,6 +939,17 @@ async function renderPublic(os,etapas,flashCtrl){
   const prevLabel=os.status==='postada'?'Postada em':os.status==='finalizada'?'Concluída em':'Previsão de Conclusão';
   const prevSub=os.status==='em_andamento'?'Data estimada — pode atualizar conforme o andamento':os.status==='finalizada'?'Aguardando postagem':'Obrigado pela preferência!';
   h+=`<div class="pub-prev"><div class="lbl">${prevLabel}</div><div class="dt">${fdLong(prevDate)}</div><div class="sub2">${prevSub}</div></div></div>`;
+  // Fotos de entrada do Flash (visível ao cliente)
+  if(!isFolh&&fotosEntrada&&fotosEntrada.length>0){
+    h+='<div class="pub-card"><div class="pub-card-title">Foto de Entrada da Mercadoria</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">';
+    fotosEntrada.forEach(f=>{
+      const url=STORAGE_URL+f.caminho_arquivo;
+      const dt=fh(f.criado_em);
+      h+=`<div style="border:1px solid #E8E4DD;border-radius:12px;overflow:hidden;background:#FAFAF8"><div style="aspect-ratio:1;overflow:hidden;cursor:pointer" onclick="openLightbox('${url}')"><img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block" alt="Foto de entrada"></div><div style="padding:8px 10px;font-size:11px;color:#6B7280;text-align:center;background:#fff;border-top:1px solid #F0EDE8">📅 ${dt}</div></div>`;
+    });
+    h+='</div></div>';
+  }
   if(isFolh&&etapas.length>0){
     h+='<div class="pub-card"><div class="pub-card-title">Progresso das Etapas</div>';
     etapas.forEach((e,i)=>{
