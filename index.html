@@ -720,87 +720,132 @@ function renderLotes(){
 
 // ===== CRIAR LOTE =====
 let _loteOsDisponiveis=[];
+// _loteMap: id -> {os, ctrl, clienteId, pesoKg}
+let _loteMap={};
 async function abrirCriarLote(){
   clearPending();
-  const{data}=await sb.from('ordens_servico').select('*,clientes(nome),flash_controle(cor,peso_kg)').eq('tipo','flash').eq('status','em_andamento').is('lote_id',null);
-  _loteOsDisponiveis=data||[];
+  // Busca separada para evitar problemas com joins aninhados
+  const[r1,r2]=await Promise.all([
+    sb.from('ordens_servico').select('id,numero_os,cliente_id,volume,clientes(nome)').eq('tipo','flash').eq('status','em_andamento').is('lote_id',null),
+    sb.from('flash_controle').select('os_id,cor,peso_kg')
+  ]);
+  const osLista=r1.data||[];
+  const ctrlMap={};(r2.data||[]).forEach(fc=>ctrlMap[fc.os_id]=fc);
+  // Montar map com tudo junto
+  _loteMap={};
+  _loteOsDisponiveis=osLista.map(o=>{
+    const ctrl=ctrlMap[o.id]||null;
+    _loteMap[o.id]={os:o,ctrl,clienteId:o.cliente_id,pesoKg:Number(ctrl?.peso_kg||0)};
+    return{...o,ctrl};
+  });
   window._loteSelIds=new Set();
   window._loteClienteId=null;
-  document.getElementById('loteCliFilter').value='';
-  document.getElementById('loteResumo').style.display='none';
+  const el=document.getElementById('loteCliFilter');if(el)el.value='';
+  const resumo=document.getElementById('loteResumo');if(resumo)resumo.style.display='none';
   filtrarOsParaLote();
   oM('mCriarLote');
 }
 function filtrarOsParaLote(){
   const q=(document.getElementById('loteCliFilter')?.value||'').toLowerCase();
-  const lista=_loteOsDisponiveis.filter(o=>!q||o.clientes?.nome?.toLowerCase().includes(q)||o.numero_os.toLowerCase().includes(q));
+  const lista=_loteOsDisponiveis.filter(o=>!q||
+    (o.clientes?.nome||'').toLowerCase().includes(q)||
+    o.numero_os.toLowerCase().includes(q)
+  );
   const sel=window._loteSelIds||new Set();
-  const bloqCli=window._loteClienteId; // cliente já selecionado — bloqueia outros
-  document.getElementById('loteOsList').innerHTML=lista.length?lista.map(o=>{
-    const ctrl=o.flash_controle?.[0];
-    const peso=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
-    const cor=ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'';
-    const checked=sel.has(o.id);
-    const bloqueado=bloqCli&&o.cliente_id!==bloqCli&&!checked;
-    return`<div class="fchk" style="padding:10px;border-bottom:1px solid var(--brd);${bloqueado?'opacity:.35;pointer-events:none':''}" onclick="toggleLoteOs(${o.id},${ctrl?.peso_kg||0},${o.cliente_id})">
-      <input type="checkbox" id="lchk_${o.id}" ${checked?'checked':''} ${bloqueado?'disabled':''} onclick="event.stopPropagation();toggleLoteOs(${o.id},${ctrl?.peso_kg||0},${o.cliente_id})">
-      <label style="cursor:pointer;flex:1"><strong>${o.numero_os}</strong> — ${o.clientes?.nome||'—'} ${cor} <span class="tlt ts">${peso}</span></label>
-    </div>`
-  }).join(''):'<p class="tlt ts tc" style="padding:20px">Nenhuma OS disponível. Todas as OS flash em andamento já estão em lotes ou não existem.</p>';
+  const bloqCli=window._loteClienteId;
+  if(!lista.length){
+    document.getElementById('loteOsList').innerHTML='<p class="tlt ts tc" style="padding:20px">Nenhuma OS flash disponível para lote.</p>';
+    return;
+  }
+  // Agrupar por cliente para exibição mais clara
+  const grupos={};
+  lista.forEach(o=>{
+    const nomeCli=o.clientes?.nome||'Sem cliente';
+    if(!grupos[nomeCli])grupos[nomeCli]=[];
+    grupos[nomeCli].push(o);
+  });
+  let html='';
+  Object.entries(grupos).forEach(([nomeCli,oss])=>{
+    const clienteId=oss[0].cliente_id;
+    const bloqGrupo=bloqCli&&clienteId!==bloqCli;
+    html+=`<div style="padding:6px 8px 4px;background:var(--bg);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txl);${bloqGrupo?'opacity:.35':''}">${nomeCli}</div>`;
+    oss.forEach(o=>{
+      const info=_loteMap[o.id];
+      const ctrl=info?.ctrl;
+      const peso=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
+      const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px;padding:2px 7px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'';
+      const checked=sel.has(o.id);
+      const bloqueado=bloqGrupo&&!checked;
+      html+=`<div data-oid="${o.id}" style="display:flex;align-items:center;gap:10px;padding:10px 10px 10px 16px;border-bottom:1px solid var(--brd);cursor:${bloqueado?'not-allowed':'pointer'};opacity:${bloqueado?'.35':'1'}" onclick="toggleLoteOs(${o.id})">
+        <input type="checkbox" id="lchk_${o.id}" ${checked?'checked':''} ${bloqueado?'disabled':''} style="width:18px;height:18px;flex-shrink:0" onclick="event.stopPropagation();toggleLoteOs(${o.id})">
+        <span style="flex:1;font-size:14px"><strong>${o.numero_os}</strong> ${corBdg}</span>
+        <span class="tlt ts" style="white-space:nowrap">${peso}</span>
+      </div>`;
+    });
+  });
+  document.getElementById('loteOsList').innerHTML=html;
 }
-function toggleLoteOs(osId,peso,clienteId){
+function toggleLoteOs(osId){
+  const info=_loteMap[osId];if(!info)return;
   const sel=window._loteSelIds;
+  const clienteId=info.clienteId;
   if(sel.has(osId)){
     sel.delete(osId);
-    // se não tem mais nenhuma do cliente, libera bloqueio
-    const ainda=_loteOsDisponiveis.filter(o=>sel.has(o.id)&&o.cliente_id===clienteId);
-    if(ainda.length===0)window._loteClienteId=sel.size===0?null:window._loteClienteId;
+    if(sel.size===0)window._loteClienteId=null;
+    else{
+      // se não tem mais nenhuma do cliente bloqueado, libera
+      const aindaDoCliente=[...sel].some(id=>_loteMap[id]?.clienteId===window._loteClienteId);
+      if(!aindaDoCliente)window._loteClienteId=null;
+    }
   }else{
-    if(window._loteClienteId&&clienteId!==window._loteClienteId){toast('Lote só pode ter OS do mesmo cliente!','er');return}
+    if(window._loteClienteId&&clienteId!==window._loteClienteId){
+      toast('Lote só pode ter OS do mesmo cliente!','er');return;
+    }
     sel.add(osId);
     window._loteClienteId=clienteId;
   }
   const chk=document.getElementById('lchk_'+osId);if(chk)chk.checked=sel.has(osId);
+  // atualizar resumo
   let totalPeso=0;
-  sel.forEach(id=>{const o=_loteOsDisponiveis.find(x=>x.id===id);totalPeso+=Number(o?.flash_controle?.[0]?.peso_kg||0);});
+  sel.forEach(id=>{totalPeso+=(_loteMap[id]?.pesoKg||0);});
   const resumo=document.getElementById('loteResumo');
-  resumo.style.display=sel.size>0?'':'none';
-  document.getElementById('loteQtdSel').textContent=sel.size+(sel.size<2?' (mínimo 2)':'');
-  document.getElementById('lotePesoSel').textContent=formatPeso(totalPeso)+' KG';
-  filtrarOsParaLote(); // atualizar bloqueios visuais
+  if(resumo)resumo.style.display=sel.size>0?'':'none';
+  const qtdEl=document.getElementById('loteQtdSel');
+  if(qtdEl)qtdEl.textContent=sel.size+(sel.size<2?' ⚠ mínimo 2':'');
+  const pesoEl=document.getElementById('lotePesoSel');
+  if(pesoEl)pesoEl.textContent=formatPeso(totalPeso)+' KG';
+  filtrarOsParaLote();
 }
 async function confirmarCriarLote(){
   const sel=window._loteSelIds;
   if(!sel||sel.size<2){toast('Selecione pelo menos 2 OS para criar um lote','er');return}
-  // Verificar mesmo cliente
-  const clientes=new Set([..._loteOsDisponiveis.filter(o=>sel.has(o.id)).map(o=>o.cliente_id)]);
+  const clientes=new Set([...sel].map(id=>_loteMap[id]?.clienteId));
   if(clientes.size>1){toast('Todas as OS do lote devem ser do mesmo cliente!','er');return}
   const btn=document.getElementById('btnCriarLote');btn.disabled=true;btn.textContent='Criando...';
   try{
     const{data:numData}=await sb.rpc('proximo_numero_lote');
-    const numero=numData||'LOTE-'+Date.now();
+    const numero=numData||('LOTE-'+new Date().getFullYear()+'-'+String(Date.now()).slice(-4));
     let totalPeso=0;const cores={};
     sel.forEach(id=>{
-      const o=_loteOsDisponiveis.find(x=>x.id===id);
-      const ctrl=o?.flash_controle?.[0];
-      totalPeso+=Number(ctrl?.peso_kg||0);
-      if(ctrl?.cor)cores[ctrl.cor]=(cores[ctrl.cor]||0)+1;
+      const info=_loteMap[id];
+      totalPeso+=info?.pesoKg||0;
+      const cor=info?.ctrl?.cor;
+      if(cor)cores[cor]=(cores[cor]||0)+1;
     });
     const corPred=Object.keys(cores).sort((a,b)=>cores[b]-cores[a])[0]||null;
-    const{data:lote,error:eLote}=await sb.from('flash_lotes').insert({numero_lote:numero,cor:corPred,peso_entrada_total:totalPeso,usuario_id:U?.id}).select().single();
+    const{data:lote,error:eLote}=await sb.from('flash_lotes').insert({
+      numero_lote:numero,cor:corPred,peso_entrada_total:totalPeso,usuario_id:U?.id
+    }).select().single();
     if(eLote)throw eLote;
-    const vinculos=[...sel].map(id=>{
-      const o=_loteOsDisponiveis.find(x=>x.id===id);
-      return{lote_id:lote.id,os_id:id,peso_entrada:Number(o?.flash_controle?.[0]?.peso_kg||0)};
-    });
+    const vinculos=[...sel].map(id=>({lote_id:lote.id,os_id:id,peso_entrada:_loteMap[id]?.pesoKg||0}));
     const{error:eVinc}=await sb.from('flash_lote_os').insert(vinculos);
     if(eVinc)throw eVinc;
     await sb.from('ordens_servico').update({lote_id:lote.id}).in('id',[...sel]);
-    toast(`Lote ${numero} criado com ${sel.size} OS!`);
+    toast(`✓ Lote ${numero} criado com ${sel.size} OS!`);
     cM('mCriarLote');
     await pgF(document.getElementById('pg'));
     switchFlTab('lotes',document.getElementById('tabFlLotes'));
-  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Criar Lote'}
+  }catch(x){toast(x.message||'Erro ao criar lote','er');btn.disabled=false;btn.textContent='Criar Lote'}
 }
 
 // ===== DETALHES DO LOTE =====
