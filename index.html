@@ -614,6 +614,7 @@ async function pgP(el){
   </div>
   <div id="pBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--pri);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">
     <span id="pBulkCount" style="color:#fff;font-weight:600;font-size:14px;flex:1"></span>
+    <button id="btnBulkAvE" class="btn bsm" style="display:none;background:rgba(212,168,83,.85);color:var(--pri-d);border:none;font-weight:600" onclick="pBulkAvancarEtapa()">&#8594; Avançar Etapa</button>
     <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="pBulkFinalizar()">&#10003; Finalizar</button>
     <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="pBulkPostar()">&#128230; Marcar Postado</button>
     ${isAdmin()?`<button class="btn bsm" style="background:rgba(220,38,38,.6);color:#fff;border:none" onclick="pBulkExcluir()">&#10007; Excluir</button>`:''}
@@ -692,9 +693,52 @@ function limparSelP(){
 function atualizarBulkBarP(){
   const bar=document.getElementById('pBulkBar');
   const count=document.getElementById('pBulkCount');
+  const btnAvE=document.getElementById('btnBulkAvE');
   if(!bar)return;
-  if(_pSel.size>0){bar.style.display='flex';count.textContent=`${_pSel.size} OS selecionada${_pSel.size>1?'s':''}`;}
-  else{bar.style.display='none';}
+  if(_pSel.size===0){bar.style.display='none';return;}
+  bar.style.display='flex';
+  // Checar se todas selecionadas são folheação e mesma etapa
+  const ossSel=AO.filter(o=>_pSel.has(o.id));
+  const todasFolh=ossSel.length>0&&ossSel.every(o=>o.tipo==='folheacao');
+  const etapas=[...new Set(ossSel.map(o=>o.etapa_atual))];
+  const mesmaEtapa=etapas.length===1;
+  const podeFolhAv=todasFolh&&mesmaEtapa&&ossSel.every(o=>isAdmin()||podeEditar(o.etapa_atual));
+  if(btnAvE){
+    btnAvE.style.display=podeFolhAv?'':'none';
+    if(podeFolhAv)btnAvE.title=`Avançar etapa: ${le(etapas[0])} → próxima`;
+  }
+  const etapaInfo=podeFolhAv?` · Etapa: ${le(etapas[0])}`:(todasFolh&&!mesmaEtapa?' · Etapas diferentes':' ');
+  count.innerHTML=`${_pSel.size} OS selecionada${_pSel.size>1?'s':''}<span style="opacity:.7;font-size:12px">${etapaInfo}</span>`;
+}
+async function pBulkAvancarEtapa(){
+  if(_pSel.size===0)return;
+  const ossSel=AO.filter(o=>_pSel.has(o.id));
+  // Validações
+  if(!ossSel.every(o=>o.tipo==='folheacao')){toast('Avançar etapa só para Folheação','er');return}
+  const etapas=[...new Set(ossSel.map(o=>o.etapa_atual))];
+  if(etapas.length>1){toast('Selecione OS na mesma etapa para avançar juntas','er');return}
+  await refreshPerms();
+  const etapaAtual=etapas[0];
+  if(!isAdmin()&&!podeEditar(etapaAtual)){toast('Sem permissão para avançar esta etapa','er');return}
+  if(!confirm(`Avançar ${ossSel.length} OS da etapa "${le(etapaAtual)}"?`))return;
+  let ok=0,erros=[];
+  for(const os of ossSel){
+    try{
+      const{data,error}=await sb.rpc('mover_os_proxima_etapa',{p_os_id:os.id,p_usuario_id:U?.id||null,p_observacoes:'Avanço em massa'});
+      if(error||!(typeof data==='string'?JSON.parse(data):data)?.success){
+        // fallback local
+        try{
+          const osObj={..._o,...os};const prev_o=_o;_o=osObj;
+          await moverEtapaLocal(os.id);
+          _o=prev_o;ok++;
+        }catch(e){erros.push(os.numero_os);}
+      }else{ok++;}
+    }catch(e){erros.push(os.numero_os);}
+  }
+  if(erros.length)toast(`${ok} avançadas. Erros: ${erros.join(', ')}`,'er');
+  else toast(`✓ ${ok} OS avançadas de etapa!`);
+  limparSelP();
+  await pgP(document.getElementById('pg'));
 }
 async function pBulkFinalizar(){
   if(_pSel.size===0)return;
