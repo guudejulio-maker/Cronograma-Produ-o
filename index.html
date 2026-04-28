@@ -1045,6 +1045,8 @@ let _loteOsDisponiveis=[];
 let _loteMap={};
 async function abrirCriarLote(){
   clearPending();
+  const btnCriar=document.getElementById('btnCriarLote');
+  if(btnCriar){btnCriar.disabled=false;btnCriar.textContent='Criar Lote'}
   // Busca separada para evitar problemas com joins aninhados
   const[r1,r2]=await Promise.all([
     sb.from('ordens_servico').select('id,numero_os,cliente_id,volume,clientes(nome)').eq('tipo','flash').eq('status','em_andamento').is('lote_id',null),
@@ -1223,6 +1225,8 @@ function abrirLoteSaida(loteId){
   document.getElementById('lsSaidaPeso').value='';
   document.getElementById('lsSaidaObs').value='';
   document.getElementById('lsSaidaFotosPrev').innerHTML='';
+  const btn=document.getElementById('btnLoteSaida');
+  if(btn){btn.disabled=false;btn.textContent='Lançar Saída'}
   cM('mLote');oM('mLoteSaida');
 }
 async function svLoteSaida(){
@@ -1250,6 +1254,8 @@ function abrirFinLote(loteId){
   const lote=FL_LOTES.find(l=>l.id===loteId)||_loteAtual;
   document.getElementById('fnLoteId').value=loteId;
   document.getElementById('fnLoteObs').value='';
+  const btn=document.getElementById('btnFinLote');
+  if(btn){btn.disabled=false;btn.textContent='Confirmar Finalização'}
   document.getElementById('fnLoteResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada Total</strong><span>${formatPeso(lote?.peso_entrada_total||0)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(lote?.peso_saida_total||0)} KG</span></div><p class="ts tlt mt8">Ao finalizar, todas as OS vinculadas serão finalizadas automaticamente.</p></div>`;
   cM('mLote');oM('mFinLote');
 }
@@ -1389,6 +1395,8 @@ function abrirSaidaParcial(osId){
   document.getElementById('spPeso').value='';
   document.getElementById('spObs').value='';
   document.getElementById('spFotosPrev').innerHTML='';
+  const btn=document.getElementById('btnSpSv');
+  if(btn){btn.disabled=false;btn.textContent='Lançar Saída'}
   oM('mSaidaP');
 }
 async function svSaidaParcial(){
@@ -1421,6 +1429,8 @@ async function abrirFinFlash(osId){
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   document.getElementById('fnOsId').value=osId;
   document.getElementById('fnObs').value='';
+  const btn=document.getElementById('btnFnCf');
+  if(btn){btn.disabled=false;btn.textContent='Confirmar Finalização'}
   document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl.peso_kg)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-ctrl.peso_kg)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
   oM('mFinFlash');
 }
@@ -1597,7 +1607,7 @@ function renderCataAction(osId){
   if(podeCatalog&&_o.status==='em_andamento'){btns+=`<button class="btn ba bsm" onclick="abrirAtrasoCliente(${osId})">Atraso do Cliente</button>`}
   area.innerHTML=btns;
 }
-function abrirCatalogCata(osId){document.getElementById('ctOsId').value=osId;document.getElementById('ctCata').checked=_o.tem_cataforetico;document.getElementById('ctObs').value='';oM('mCata')}
+function abrirCatalogCata(osId){document.getElementById('ctOsId').value=osId;document.getElementById('ctCata').checked=_o.tem_cataforetico;document.getElementById('ctObs').value='';const btn=document.getElementById('btnCtSv');if(btn){btn.disabled=false;btn.textContent='Confirmar'}oM('mCata')}
 async function svCatalogCata(){
   const osId=parseInt(document.getElementById('ctOsId').value);const novo=document.getElementById('ctCata').checked;const obs=document.getElementById('ctObs').value.trim()||null;
   if(novo===_o.tem_cataforetico){toast('Valor igual','er');return}
@@ -1617,6 +1627,8 @@ async function confirmarVoltarEtapa(){
 // ===== EDITAR DATAS ETAPA (Admin) =====
 function abrirEdDatas(etapaId){
   const e=_e.find(x=>x.id===etapaId);if(!e)return;
+  const btn=document.getElementById('btnEdDtSv');
+  if(btn){btn.disabled=false;btn.textContent='Salvar'}
   document.getElementById('edEtapaId').value=etapaId;
   document.getElementById('edEtapaInfo').innerHTML=`<div class="peso-box"><strong>${le(e.etapa_nome)}</strong> — Status: ${e.status}</div>`;
   document.getElementById('edEntReal').value=e.data_entrada_real?e.data_entrada_real.substring(0,16):'';
