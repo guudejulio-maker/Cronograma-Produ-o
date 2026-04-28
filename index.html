@@ -118,7 +118,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 </head>
 <body>
 <div id="vLogin" style="display:none"><div class="lw"><div class="lb"><div class="logo">Scarlat Galvânica</div><h1>Cronograma de Produção</h1><p class="sub">Entre com suas credenciais</p><div class="lerr" id="lErr"></div><form onsubmit="doLogin(event)"><div class="fg"><label>E-mail</label><input type="email" id="iEm" class="fc" placeholder="seu@email.com" required></div><div class="fg"><label>Senha</label><input type="password" id="iPw" class="fc" placeholder="Sua senha" required></div><button type="submit" class="btn bp blg bbl mt16" id="bLog">Entrar</button></form></div></div></div>
-<div id="vApp" style="display:none"><button class="mtog" onclick="tgM()">&#9776;</button><div class="sov" id="sOv" onclick="tgM()"></div><div class="app"><aside class="side" id="sBar"><div class="side-logo"><h1>Cronograma</h1><span>Scarlat Galvânica</span></div><nav class="snav" id="sNav"></nav><div class="su"><div class="su-av" id="uA">?</div><div class="su-i"><div class="n" id="uN">...</div><div class="p" id="uP">—</div></div><button class="bout" onclick="doOut()" title="Sair"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div></aside><main class="mn" id="pg"></main></div></div>
+<div id="vApp" style="display:none"><button class="mtog" onclick="tgM()">&#9776;</button><div class="sov" id="sOv" onclick="tgM()"></div><div class="app"><aside class="side" id="sBar"><div class="side-logo"><h1>Cronograma</h1><span>Scarlat Galvânica</span></div><nav class="snav" id="sNav"></nav><div class="su"><div class="su-av" id="uA">?</div><div class="su-i"><div class="n" id="uN">...</div><div class="p" id="uP">—</div></div><button class="bout" onclick="doOut()" title="Sair"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div></aside><main class="mn" id="pg" style="overflow-y:auto;height:100vh"></main></div></div>
 
 
 <!-- PUBLIC TRACKING VIEW -->
@@ -177,7 +177,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="foto-upload-area" onclick="document.getElementById('spFotosInput').click()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
   <p>Toque para tirar foto ou selecionar da galeria</p>
-  <input type="file" id="spFotosInput" accept="image/*" capture="environment" multiple style="display:none" onchange="previewFiles(this,'spFotosPrev')">
+  <input type="file" id="spFotosInput" accept="image/*" multiple style="display:none" onchange="previewFiles(this,'spFotosPrev')">
 </div>
 <div class="foto-preview-grid" id="spFotosPrev"></div>
 </div>
@@ -189,6 +189,42 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div id="fnResumo"></div>
 <div class="fg mt16"><label>Observação de Finalização *</label><textarea id="fnObs" class="fc" placeholder="Observação final do processo..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mFinFlash')">Cancelar</button><button class="btn bok" onclick="confirmarFinFlash()" id="btnFnCf">Confirmar Finalização</button></div></div></div>
+
+<!-- Modal Criar Lote -->
+<div class="modal" id="mCriarLote"><div class="mc" style="max-width:640px"><div class="mh"><h3>Criar Lote Flash</h3><button class="mx" onclick="cM('mCriarLote')">&times;</button></div><div class="mb">
+<p class="ts tlt mb16">Selecione as OS em andamento para agrupar neste lote. O peso total será somado automaticamente.</p>
+<div class="fg"><label>Filtrar por cliente</label><input type="text" id="loteCliFilter" class="fc" placeholder="Digite o nome..." oninput="filtrarOsParaLote()"></div>
+<div id="loteOsList" style="max-height:320px;overflow-y:auto;border:1px solid var(--brd);border-radius:8px;padding:8px"></div>
+<div class="peso-box mt16" id="loteResumo" style="display:none">
+  <div class="fx ac jb"><strong>OS selecionadas</strong><span id="loteQtdSel">0</span></div>
+  <div class="fx ac jb mt8"><strong>Peso total entrada</strong><span id="lotePesoSel" style="font-weight:600;color:var(--acc)">0 KG</span></div>
+</div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mCriarLote')">Cancelar</button><button class="btn ba" onclick="confirmarCriarLote()" id="btnCriarLote">Criar Lote</button></div></div></div>
+
+<!-- Modal Detalhes do Lote -->
+<div class="modal" id="mLote"><div class="mc" style="max-width:620px"><div class="mh"><h3 id="mLoteTitle">Lote Flash</h3><button class="mx" onclick="cM('mLote')">&times;</button></div><div class="mb" id="mLoteBody"><div class="spin"></div></div><div class="mf" id="mLoteFt"></div></div></div>
+
+<!-- Modal Saída do Lote -->
+<div class="modal" id="mLoteSaida"><div class="mc" style="max-width:500px"><div class="mh"><h3>Lançar Saída do Lote</h3><button class="mx" onclick="cM('mLoteSaida')">&times;</button></div><div class="mb">
+<input type="hidden" id="lsSaidaLoteId">
+<div class="fg"><label>Peso desta saída (KG) *</label><input type="text" inputmode="decimal" id="lsSaidaPeso" class="fc" placeholder="Ex: 1,250"></div>
+<div class="fg"><label>Observação</label><textarea id="lsSaidaObs" class="fc" placeholder="Observação..."></textarea></div>
+<div class="fg"><label>Fotos desta saída</label>
+<div class="foto-upload-area" onclick="document.getElementById('lsSaidaFotosInput').click()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  <p>Toque para tirar foto ou selecionar da galeria</p>
+  <input type="file" id="lsSaidaFotosInput" accept="image/*" multiple style="display:none" onchange="previewFiles(this,'lsSaidaFotosPrev')">
+</div>
+<div class="foto-preview-grid" id="lsSaidaFotosPrev"></div>
+</div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mLoteSaida')">Cancelar</button><button class="btn bok" onclick="svLoteSaida()" id="btnLoteSaida">Lançar Saída</button></div></div></div>
+
+<!-- Modal Finalizar Lote -->
+<div class="modal" id="mFinLote"><div class="mc" style="max-width:500px"><div class="mh"><h3>Finalizar Lote</h3><button class="mx" onclick="cM('mFinLote')">&times;</button></div><div class="mb">
+<input type="hidden" id="fnLoteId">
+<div id="fnLoteResumo"></div>
+<div class="fg mt16"><label>Observação de Finalização *</label><textarea id="fnLoteObs" class="fc" placeholder="Observação final..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mFinLote')">Cancelar</button><button class="btn bok" onclick="confirmarFinLote()" id="btnFinLote">Confirmar Finalização</button></div></div></div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lbox" onclick="this.classList.remove('on')"><button class="lightbox-close" onclick="document.getElementById('lbox').classList.remove('on')">&times;</button><img id="lboxImg" src=""></div>
@@ -331,11 +367,94 @@ const NAV=[
 {id:'kanban',l:'Painel Etapas',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>'},
 {id:'flash',l:'Flash',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'},
 {id:'cadastros',l:'Cadastros',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'},
+{id:'finalizados',l:'Finalizados',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'},
 {id:'admin',l:'Administração',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'}];
 
+// ===== STATE PRESERVATION =====
+// Saves and restores filter values + scroll position per page
+const _pgState={};
+let _lastViewedOsId=null;
+function savePageState(page){
+  const state={scroll:document.getElementById('pg')?.scrollTop||0,fields:{}};
+  document.querySelectorAll('#pg input[id],#pg select[id]').forEach(el=>{state.fields[el.id]=el.value});
+  const tabOS=document.getElementById('tabFlOS');
+  if(tabOS)state.flashTab=tabOS.classList.contains('on')?'os':'lotes';
+  _pgState[page]=state;
+}
+function restorePageState(page){
+  const state=_pgState[page];
+  if(!state)return;
+  Object.entries(state.fields||{}).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(el)el.value=val;
+  });
+  if(state.flashTab&&state.flashTab!=='os'){
+    const btn=document.getElementById('tabFlLotes');
+    if(btn)switchFlTab('lotes',btn);
+  }
+  // re-run filter to apply restored values
+  const filterFn={producao:fOS,flash:()=>{fFL();renderLotes()},finalizados:fFin,cadastros:fCad};
+  if(filterFn[page])filterFn[page]();
+  // highlight + scroll to last viewed OS row
+  if(_lastViewedOsId){
+    setTimeout(()=>{
+      const row=document.querySelector(`tr[data-os-id="${_lastViewedOsId}"]`);
+      if(row){
+        row.style.transition='background .4s';
+        row.style.background='rgba(212,168,83,.18)';
+        row.scrollIntoView({block:'center',behavior:'smooth'});
+        setTimeout(()=>{row.style.background='';},1800);
+      } else if(state.scroll){
+        const pg=document.getElementById('pg');
+        if(pg)pg.scrollTop=state.scroll;
+      }
+      _lastViewedOsId=null;
+    },80);
+  } else if(state.scroll){
+    setTimeout(()=>{
+      const pg=document.getElementById('pg');
+      if(pg)pg.scrollTop=state.scroll;
+    },50);
+  }
+}
+
+let _currentPage='dashboard';
 function rSide(){document.getElementById('sNav').innerHTML=NAV.map(n=>`<a onclick="go('${n.id}')" data-n="${n.id}">${n.i}${n.l}</a>`).join('')}
-function go(p,pr={}){location.hash=p;document.querySelectorAll('[data-n]').forEach(a=>a.classList.toggle('on',a.dataset.n===p));document.getElementById('sBar').classList.remove('open');document.getElementById('sOv').classList.remove('on');const P=document.getElementById('pg');P.innerHTML='<div class="spin"></div>';({dashboard:pgD,['nova-os']:pgN,producao:pgP,kanban:pgK,flash:pgF,cadastros:pgCad,admin:pgA,detalhes:pgDet}[p]||pgD)(P,pr.id)}
-window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);h.startsWith('d/')?go('detalhes',{id:h.split('/')[1]}):go(h||'dashboard')});
+function go(p,pr={}){
+  if(_currentPage&&_currentPage!=='detalhes'&&_currentPage!==p){
+    savePageState(_currentPage);
+  }
+  if(p==='detalhes'&&pr.id)_lastViewedOsId=pr.id;
+  _currentPage=p;
+  location.hash=p==='detalhes'?('d/'+(pr.id||'')):p;
+  document.querySelectorAll('[data-n]').forEach(a=>a.classList.toggle('on',a.dataset.n===p));
+  document.getElementById('sBar').classList.remove('open');
+  document.getElementById('sOv').classList.remove('on');
+  const P=document.getElementById('pg');
+  const statefulPages=['producao','flash','finalizados','cadastros'];
+  const hasSaved=statefulPages.includes(p)&&_pgState[p];
+  P.innerHTML='<div class="spin"></div>';
+  const fn={dashboard:pgD,['nova-os']:pgN,producao:pgP,kanban:pgK,flash:pgF,finalizados:pgFin,cadastros:pgCad,admin:pgA,detalhes:pgDet}[p]||pgD;
+  const result=fn(P,pr.id);
+  if(hasSaved&&result&&typeof result.then==='function'){
+    result.then(()=>restorePageState(p));
+  }
+}
+window.addEventListener('hashchange',()=>{
+  const h=location.hash.slice(1);
+  if(h.startsWith('d/')){
+    const id=h.split('/')[1];
+    if(_currentPage!=='detalhes'){savePageState(_currentPage)}
+    _lastViewedOsId=id;
+    _currentPage='detalhes';
+    document.querySelectorAll('[data-n]').forEach(a=>a.classList.remove('on'));
+    const P=document.getElementById('pg');P.innerHTML='<div class="spin"></div>';
+    pgDet(P,id);
+  } else {
+    const p=h||'dashboard';
+    go(p);
+  }
+});
 
 async function init(){
   const urlParams=new URLSearchParams(window.location.search);
@@ -347,7 +466,7 @@ async function doOut(){await sb.auth.signOut();location.reload()}
 
 // ===== UPLOAD HELPERS =====
 let _pendingFiles=[];
-function renderUploadArea(containerId,inputId){return `<div class="foto-upload-area" onclick="document.getElementById('${inputId}').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><p>Toque para tirar foto ou selecionar da galeria</p><input type="file" id="${inputId}" accept="image/*" capture="environment" multiple style="display:none" onchange="previewFiles(this,'${containerId}')"></div><div class="foto-preview-grid" id="${containerId}"></div>`}
+function renderUploadArea(containerId,inputId){return `<div class="foto-upload-area" onclick="document.getElementById('${inputId}').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><p>Toque para tirar foto ou selecionar da galeria</p><input type="file" id="${inputId}" accept="image/*" multiple style="display:none" onchange="previewFiles(this,'${containerId}')"></div><div class="foto-preview-grid" id="${containerId}"></div>`}
 function previewFiles(input,containerId){const cont=document.getElementById(containerId);const files=Array.from(input.files);files.forEach(f=>{if(f.size>10*1024*1024){toast('Arquivo muito grande (máx 10MB)','er');return}if(!f.type.startsWith('image/')){toast('Apenas imagens','er');return}const idx=_pendingFiles.length;_pendingFiles.push(f);const reader=new FileReader();reader.onload=e=>{cont.innerHTML+=`<div class="foto-preview" id="fp_${idx}"><img src="${e.target.result}"><button class="fp-del" onclick="removePending(${idx},'fp_${idx}')">&times;</button></div>`};reader.readAsDataURL(f)});input.value=''}
 function removePending(idx,elId){_pendingFiles[idx]=null;const el=document.getElementById(elId);if(el)el.remove()}
 function getPendingFiles(){return _pendingFiles.filter(f=>f!==null)}
@@ -370,7 +489,7 @@ async function uploadFlashFotos(osId,files,tipo,saidaParcialId){
 async function deleteFlashFoto(fotoId,caminho){await sb.storage.from('flash-fotos').remove([caminho]);await sb.from('flash_fotos').delete().eq('id',fotoId)}
 
 // ===== DASHBOARD =====
-async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;const[r1,r2,r3]=await Promise.all([sb.from('vw_dashboard_resumo').select('*').single(),sb.from('vw_os_por_etapa').select('*'),sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(15)]);const d=r1.data||{};document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;document.getElementById('df').textContent=d.finalizadas_hoje||0;const et=r2.data||[];document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.sort(sortByUrgency).map(o=>`<tr class="${alOrig(o)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${baOrig(o)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>'}
+async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;const[r1,r2,r3]=await Promise.all([sb.from('vw_dashboard_resumo').select('*').single(),sb.from('vw_os_por_etapa').select('*'),sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(15)]);const d=r1.data||{};document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;document.getElementById('df').textContent=d.finalizadas_hoje||0;const et=r2.data||[];document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.sort(sortByUrgency).map(o=>`<tr class="${alOrig(o)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${baOrig(o)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>'}
 
 // ===== NOVA OS (com número automático para flash) =====
 async function pgN(el){
@@ -450,7 +569,14 @@ async function svOS(e){
       if(files.length>0)await uploadFlashFotos(os.id,files,'entrada');
       clearPending();
     }
-    toast('OS cadastrada!');setTimeout(()=>location.hash='d/'+os.id,500);
+    toast('OS cadastrada!');
+    if(tipo==='flash'){
+      // Buscar dados para ficha
+      const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',os.id).single();
+      const{data:cli}=await sb.from('clientes').select('nome').eq('id',os.cliente_id).single();
+      imprimirFichaFlash({numero_os:os.numero_os,cliente:cli?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:os.data_entrada});
+    }
+    setTimeout(()=>location.hash='d/'+os.id,500);
   }catch(x){toast(x.message||'Erro','er');b.disabled=false;b.textContent='Cadastrar OS'}
 }
 
@@ -468,40 +594,95 @@ async function tgCliA(id,a){await sb.from('clientes').update({ativo:a}).eq('id',
 
 // ===== PRODUÇÃO =====
 let AO=[];
-async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">Todas as OS</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fSt" onchange="fOS()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option><option value="finalizado">Finalizado</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').order('criado_em',{ascending:false});AO=data||[];fOS()}
-function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',st=document.getElementById('fSt')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(st&&o.status!==st)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&alOrig(o)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';r.sort(sortByUrgency);document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr class="${alOrig(o)==='vencido'?'re':alOrig(o)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'—'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${baOrig(o)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS</td></tr>'}
+async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">OS em andamento</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('criado_em',{ascending:false});AO=data||[];fOS()}
+function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&alOrig(o)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';r.sort(sortByUrgency);document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr data-os-id="${o.id}" class="${alOrig(o)==='vencido'?'re':alOrig(o)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'—'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${baOrig(o)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS em andamento</td></tr>'}
+
+// ===== FINALIZADOS =====
+async function pgFin(el){
+  el.innerHTML=`<div class="ph"><div><h2>Finalizados</h2><p class="phs">OS finalizadas e postadas</p></div></div>
+  <div class="fil">
+    <input type="search" class="fc" id="finT" placeholder="Buscar OS ou cliente..." oninput="fFin()">
+    <select class="fc" id="finTp" onchange="fFin()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select>
+    <select class="fc" id="finSt" onchange="fFin()"><option value="">Status</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select>
+    <select class="fc" id="finMes" onchange="fFin()"><option value="">Todos os meses</option>${MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
+    <select class="fc" id="finAno" onchange="fFin()"><option value="">Todos os anos</option></select>
+  </div>
+  <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Peso</th><th>Entrada</th><th>Conclusão</th><th>Atraso</th><th>Status</th></tr></thead><tbody id="tFin"></tbody></table></div>
+  <div class="ts tlt mt16" id="tFinC"></div>`;
+  const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').in('status',['finalizada','postada','cancelada']).order('data_conclusao',{ascending:false});
+  window._finAO=data||[];
+  const anos=[...new Set((data||[]).map(o=>(o.data_conclusao||o.data_entrada||'').substring(0,4)).filter(Boolean))].sort().reverse();
+  const selAno=document.getElementById('finAno');anos.forEach(a=>selAno.innerHTML+=`<option value="${a}">${a}</option>`);
+  fFin();
+}
+function fFin(){
+  const t=(document.getElementById('finT')?.value||'').toLowerCase();
+  const tp=document.getElementById('finTp')?.value||'';
+  const st=document.getElementById('finSt')?.value||'';
+  const mes=document.getElementById('finMes')?.value||'';
+  const ano=document.getElementById('finAno')?.value||'';
+  let r=(window._finAO||[]).filter(o=>{
+    if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
+    if(tp&&o.tipo!==tp)return!1;
+    if(st&&o.status!==st)return!1;
+    const dt=(o.data_conclusao||o.data_entrada||'');
+    if(ano&&!dt.startsWith(ano))return!1;
+    if(mes&&dt){const m=parseInt(dt.substring(5,7));if(m!==parseInt(mes))return!1}
+    return!0;
+  });
+  document.getElementById('tFinC').textContent=r.length+' registro(s)';
+  document.getElementById('tFin').innerHTML=r.length?r.map(o=>`<tr class="cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td>${fd((o.data_conclusao||'').substring(0,10))}</td><td>${badgeAtrasoOS(o)}</td><td><span class="bdg ${o.status==='postada'?'bok2':'bor'}">${ls(o.status)}</span></td></tr>`).join(''):'<tr><td colspan="8" class="tc tlt" style="padding:40px">Nenhuma OS encontrada</td></tr>';
+}
 
 // ===== KANBAN =====
 async function pgK(el){const C=[...ET,'finalizado'];el.innerHTML=`<div class="ph"><div><h2>Painel Etapas</h2><p class="phs">Kanban — Folheação</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="kb" id="kC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','folheacao').in('status',['em_andamento','finalizada']).order('data_prevista_conclusao');const m={};C.forEach(c=>m[c]=[]);(data||[]).forEach(o=>{const e=o.etapa_atual||'entrada';if(m[e])m[e].push(o)});document.getElementById('kC').innerHTML=C.map(c=>{const l=m[c];return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(o=>`<div class="kcd" onclick="location.hash='d/${o.id}'"><div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os}</div><div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>${o.volume?`<div class="txs tlt">${o.volume}</div>`:''}<div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>${o.tem_cataforetico?'<span class="bc mt8">Cataf.</span>':''}</div>`).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`}).join('')}
 
 // ===== FLASH (lista com filtros mês/ano) =====
 let FL=[];
+let FL_LOTES=[];
 async function pgF(el){
-  el.innerHTML=`<div class="ph"><div><h2>Flash</h2><p class="phs">Prazo de 7 dias</p></div><button class="btn ba" onclick="go('nova-os')">+ Novo Flash</button></div>
+  el.innerHTML=`<div class="ph"><div><h2>Flash</h2><p class="phs">Prazo de 7 dias</p></div><div class="fx g8"><button class="btn bo" onclick="abrirCriarLote()">&#128230; Criar Lote</button><button class="btn ba" onclick="go('nova-os')">+ Novo Flash</button></div></div>
   <div class="stats" id="fS"></div>
+  <div class="tabs" style="margin-bottom:16px"><button class="tb on" id="tabFlOS" onclick="switchFlTab('os',this)">OS Individuais</button><button class="tb" id="tabFlLotes" onclick="switchFlTab('lotes',this)">Lotes</button></div>
+  <div id="flTabOS">
   <div class="fil">
     <input type="search" class="fc" id="flT" placeholder="OS ou cliente..." oninput="fFL()">
     <select class="fc" id="flMes" onchange="fFL()"><option value="">Todos os meses</option>${MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
     <select class="fc" id="flAno" onchange="fFL()"><option value="">Todos os anos</option></select>
     <select class="fc" id="flS" onchange="fFL()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select>
   </div>
-  <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Entrada</th><th>Saída</th><th>Fotos</th><th>Data</th><th>Prazo</th><th>Alerta</th><th>Status</th></tr></thead><tbody id="tF"></tbody></table></div>`;
-  const[r1,r2,r3,r4]=await Promise.all([
+  <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Entrada</th><th>Saída</th><th>Lote</th><th>Data</th><th>Prazo</th><th>Alerta</th><th>Status</th></tr></thead><tbody id="tF"></tbody></table></div>
+  </div>
+  <div id="flTabLotes" style="display:none">
+  <div class="tw"><table><thead><tr><th>Lote</th><th>OS</th><th>Peso Entrada</th><th>Peso Saída</th><th>Criado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tLotes"></tbody></table></div>
+  </div>`;
+  const[r1,r2,r3,r4,r5]=await Promise.all([
     sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','flash').order('data_entrada',{ascending:false}),
     sb.from('flash_controle').select('os_id,cor,peso_kg,peso_saida_total'),
     sb.from('flash_fotos').select('os_id,tipo_foto'),
-    sb.from('ordens_servico').select('data_entrada').eq('tipo','flash')
+    sb.from('ordens_servico').select('data_entrada').eq('tipo','flash'),
+    sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome)))').order('criado_em',{ascending:false})
   ]);
-  FL=r1.data||[];
+  FL=r1.data||[];FL_LOTES=r5.data||[];
   const fcs={};(r2.data||[]).forEach(f=>fcs[f.os_id]=f);
   const fotoCount={};(r3.data||[]).forEach(f=>{if(!fotoCount[f.os_id])fotoCount[f.os_id]={entrada:0,saida:0};fotoCount[f.os_id][f.tipo_foto]++});
   window._flFcs=fcs;window._flFoto=fotoCount;
-  // Popular anos únicos
   const anos=[...new Set((r4.data||[]).map(o=>o.data_entrada?.substring(0,4)).filter(Boolean))].sort().reverse();
   const selAno=document.getElementById('flAno');anos.forEach(a=>selAno.innerHTML+=`<option value="${a}">${a}</option>`);
-  const an=FL.filter(f=>f.status==='em_andamento');
-  document.getElementById('fS').innerHTML=`<div class="st st4"><div class="sti">&#9889;</div><div class="stv">${an.length}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)!=='vencido').length}</div><div class="stl">No prazo</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)==='vencido').length}</div><div class="stl">Vencidos</div></div>`;
-  fFL();
+  const an=FL.filter(f=>f.status==='em_andamento'&&!f.lote_id);
+  const anLotes=FL_LOTES.filter(l=>l.status==='em_andamento');
+  document.getElementById('fS').innerHTML=`
+    <div class="st st4"><div class="sti">&#9889;</div><div class="stv">${an.length}</div><div class="stl">Flash Indiv.</div></div>
+    <div class="st st4"><div class="sti">&#128230;</div><div class="stv">${anLotes.length}</div><div class="stl">Lotes ativos</div></div>
+    <div class="st st1"><div class="sti">&#10003;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)!=='vencido').length}</div><div class="stl">No prazo</div></div>
+    <div class="st st3"><div class="sti">&#10007;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)==='vencido').length}</div><div class="stl">Vencidos</div></div>`;
+  fFL();renderLotes();
+}
+function switchFlTab(tab,btn){
+  document.querySelectorAll('#flTabOS,#flTabLotes').forEach(e=>e.style.display='none');
+  document.querySelectorAll('#tabFlOS,#tabFlLotes').forEach(b=>b.classList.remove('on'));
+  document.getElementById(tab==='os'?'flTabOS':'flTabLotes').style.display='';
+  btn.classList.add('on');
 }
 function fFL(){
   const t=(document.getElementById('flT')?.value||'').toLowerCase();
@@ -516,13 +697,224 @@ function fFL(){
     if(mes&&o.data_entrada){const m=parseInt(o.data_entrada.substring(5,7));if(m!==parseInt(mes))return!1}
     return!0
   });
-  r.sort(sortByUrgency);document.getElementById('tF').innerHTML=r.length?r.map(o=>{
+  r.sort(sortByUrgency);
+  const tbody=document.getElementById('tF');if(!tbody)return;
+  tbody.innerHTML=r.length?r.map(o=>{
     const ctrl=fcs[o.id];const cnt=fc[o.id]||{entrada:0,saida:0};
     const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—';
     const pesoEnt=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
     const pesoSai=ctrl?.peso_saida_total!==undefined&&ctrl?.peso_saida_total!==null?formatPeso(ctrl.peso_saida_total)+' KG':'—';
-    return`<tr class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td>${corBdg}</td><td>${pesoEnt}</td><td>${pesoSai}</td><td><span class="txs">E:${cnt.entrada} / S:${cnt.saida}</span></td><td>${fd(o.data_entrada)}</td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td><td><span class="bdg ${o.status==='em_andamento'?'bok2':'bor'}">${ls(o.status)}</span></td></tr>`
+    const loteBdg=o.lote_id?`<span class="bdg" style="background:#EDE9FE;color:#5B21B6;font-size:11px">&#128230; ${FL_LOTES.find(l=>l.id===o.lote_id)?.numero_lote||'Lote'}</span>`:'—';
+    return`<tr data-os-id="${o.id}" class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td>${corBdg}</td><td>${pesoEnt}</td><td>${pesoSai}</td><td>${loteBdg}</td><td>${fd(o.data_entrada)}</td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td><td><span class="bdg ${o.status==='em_andamento'&&!o.lote_id?'bok2':o.lote_id?'':'bor'}" style="${o.lote_id?'background:#EDE9FE;color:#5B21B6':''}">${o.lote_id?'Em Lote':ls(o.status)}</span></td></tr>`
   }).join(''):'<tr><td colspan="10" class="tc tlt" style="padding:40px">Nenhum flash</td></tr>';
+}
+function renderLotes(){
+  const tbody=document.getElementById('tLotes');if(!tbody)return;
+  tbody.innerHTML=FL_LOTES.length?FL_LOTES.map(l=>{
+    const osCount=l.flash_lote_os?.length||0;
+    const stBdg=l.status==='em_andamento'?'bok2':l.status==='finalizado'?'bor':'ber2';
+    const stLabel=l.status==='em_andamento'?'Em andamento':l.status==='finalizado'?'Finalizado':l.status==='postado'?'Postado':'Cancelado';
+    return`<tr><td><strong style="color:var(--acc)">${l.numero_lote}</strong></td><td>${osCount} OS</td><td>${formatPeso(l.peso_entrada_total)} KG</td><td>${formatPeso(l.peso_saida_total)} KG</td><td>${fd(l.criado_em?.substring(0,10))}</td><td><span class="bdg ${stBdg}">${stLabel}</span></td><td><button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Gerenciar</button></td></tr>`
+  }).join(''):'<tr><td colspan="7" class="tc tlt" style="padding:40px">Nenhum lote criado</td></tr>';
+}
+
+// ===== CRIAR LOTE =====
+let _loteOsDisponiveis=[];
+async function abrirCriarLote(){
+  clearPending();
+  const{data}=await sb.from('ordens_servico').select('*,clientes(nome),flash_controle(cor,peso_kg)').eq('tipo','flash').eq('status','em_andamento').is('lote_id',null);
+  _loteOsDisponiveis=data||[];
+  window._loteSelIds=new Set();
+  window._loteClienteId=null;
+  document.getElementById('loteCliFilter').value='';
+  document.getElementById('loteResumo').style.display='none';
+  filtrarOsParaLote();
+  oM('mCriarLote');
+}
+function filtrarOsParaLote(){
+  const q=(document.getElementById('loteCliFilter')?.value||'').toLowerCase();
+  const lista=_loteOsDisponiveis.filter(o=>!q||o.clientes?.nome?.toLowerCase().includes(q)||o.numero_os.toLowerCase().includes(q));
+  const sel=window._loteSelIds||new Set();
+  const bloqCli=window._loteClienteId; // cliente já selecionado — bloqueia outros
+  document.getElementById('loteOsList').innerHTML=lista.length?lista.map(o=>{
+    const ctrl=o.flash_controle?.[0];
+    const peso=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
+    const cor=ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'';
+    const checked=sel.has(o.id);
+    const bloqueado=bloqCli&&o.cliente_id!==bloqCli&&!checked;
+    return`<div class="fchk" style="padding:10px;border-bottom:1px solid var(--brd);${bloqueado?'opacity:.35;pointer-events:none':''}" onclick="toggleLoteOs(${o.id},${ctrl?.peso_kg||0},${o.cliente_id})">
+      <input type="checkbox" id="lchk_${o.id}" ${checked?'checked':''} ${bloqueado?'disabled':''} onclick="event.stopPropagation();toggleLoteOs(${o.id},${ctrl?.peso_kg||0},${o.cliente_id})">
+      <label style="cursor:pointer;flex:1"><strong>${o.numero_os}</strong> — ${o.clientes?.nome||'—'} ${cor} <span class="tlt ts">${peso}</span></label>
+    </div>`
+  }).join(''):'<p class="tlt ts tc" style="padding:20px">Nenhuma OS disponível. Todas as OS flash em andamento já estão em lotes ou não existem.</p>';
+}
+function toggleLoteOs(osId,peso,clienteId){
+  const sel=window._loteSelIds;
+  if(sel.has(osId)){
+    sel.delete(osId);
+    // se não tem mais nenhuma do cliente, libera bloqueio
+    const ainda=_loteOsDisponiveis.filter(o=>sel.has(o.id)&&o.cliente_id===clienteId);
+    if(ainda.length===0)window._loteClienteId=sel.size===0?null:window._loteClienteId;
+  }else{
+    if(window._loteClienteId&&clienteId!==window._loteClienteId){toast('Lote só pode ter OS do mesmo cliente!','er');return}
+    sel.add(osId);
+    window._loteClienteId=clienteId;
+  }
+  const chk=document.getElementById('lchk_'+osId);if(chk)chk.checked=sel.has(osId);
+  let totalPeso=0;
+  sel.forEach(id=>{const o=_loteOsDisponiveis.find(x=>x.id===id);totalPeso+=Number(o?.flash_controle?.[0]?.peso_kg||0);});
+  const resumo=document.getElementById('loteResumo');
+  resumo.style.display=sel.size>0?'':'none';
+  document.getElementById('loteQtdSel').textContent=sel.size+(sel.size<2?' (mínimo 2)':'');
+  document.getElementById('lotePesoSel').textContent=formatPeso(totalPeso)+' KG';
+  filtrarOsParaLote(); // atualizar bloqueios visuais
+}
+async function confirmarCriarLote(){
+  const sel=window._loteSelIds;
+  if(!sel||sel.size<2){toast('Selecione pelo menos 2 OS para criar um lote','er');return}
+  // Verificar mesmo cliente
+  const clientes=new Set([..._loteOsDisponiveis.filter(o=>sel.has(o.id)).map(o=>o.cliente_id)]);
+  if(clientes.size>1){toast('Todas as OS do lote devem ser do mesmo cliente!','er');return}
+  const btn=document.getElementById('btnCriarLote');btn.disabled=true;btn.textContent='Criando...';
+  try{
+    const{data:numData}=await sb.rpc('proximo_numero_lote');
+    const numero=numData||'LOTE-'+Date.now();
+    let totalPeso=0;const cores={};
+    sel.forEach(id=>{
+      const o=_loteOsDisponiveis.find(x=>x.id===id);
+      const ctrl=o?.flash_controle?.[0];
+      totalPeso+=Number(ctrl?.peso_kg||0);
+      if(ctrl?.cor)cores[ctrl.cor]=(cores[ctrl.cor]||0)+1;
+    });
+    const corPred=Object.keys(cores).sort((a,b)=>cores[b]-cores[a])[0]||null;
+    const{data:lote,error:eLote}=await sb.from('flash_lotes').insert({numero_lote:numero,cor:corPred,peso_entrada_total:totalPeso,usuario_id:U?.id}).select().single();
+    if(eLote)throw eLote;
+    const vinculos=[...sel].map(id=>{
+      const o=_loteOsDisponiveis.find(x=>x.id===id);
+      return{lote_id:lote.id,os_id:id,peso_entrada:Number(o?.flash_controle?.[0]?.peso_kg||0)};
+    });
+    const{error:eVinc}=await sb.from('flash_lote_os').insert(vinculos);
+    if(eVinc)throw eVinc;
+    await sb.from('ordens_servico').update({lote_id:lote.id}).in('id',[...sel]);
+    toast(`Lote ${numero} criado com ${sel.size} OS!`);
+    cM('mCriarLote');
+    await pgF(document.getElementById('pg'));
+    switchFlTab('lotes',document.getElementById('tabFlLotes'));
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Criar Lote'}
+}
+
+// ===== DETALHES DO LOTE =====
+let _loteAtual=null;
+async function abrirDetalhesLote(loteId){
+  document.getElementById('mLoteBody').innerHTML='<div class="spin"></div>';
+  document.getElementById('mLoteFt').innerHTML='';
+  oM('mLote');
+  const[r1,r2,r3]=await Promise.all([
+    sb.from('flash_lotes').select('*').eq('id',loteId).single(),
+    sb.from('flash_lote_os').select('*,ordens_servico(numero_os,status,clientes(nome),flash_controle(cor,peso_kg))').eq('lote_id',loteId),
+    sb.from('flash_lote_saidas').select('*,perfis(nome)').eq('lote_id',loteId).order('criado_em',{ascending:false})
+  ]);
+  const lote=r1.data;const osVinc=r2.data||[];const saidas=r3.data||[];
+  if(!lote){document.getElementById('mLoteBody').innerHTML='<p class="tlt">Lote não encontrado</p>';return}
+  _loteAtual=lote;
+  document.getElementById('mLoteTitle').textContent=lote.numero_lote;
+  const emAnd=lote.status==='em_andamento';
+  const completo=lote.peso_entrada_total>0&&lote.peso_saida_total>=lote.peso_entrada_total;
+  const pct=lote.peso_entrada_total>0?Math.min(100,(lote.peso_saida_total/lote.peso_entrada_total)*100):0;
+  let html=`
+    <div class="fr mb16">
+      <div><div class="txs tlt" style="text-transform:uppercase">Cor predominante</div><div class="mt8">${lote.cor?`<span class="bdg b-${lote.cor}">${COR_LBL[lote.cor]||lote.cor}</span>`:'—'}</div></div>
+      <div><div class="txs tlt" style="text-transform:uppercase">Status</div><div class="mt8"><span class="bdg ${lote.status==='em_andamento'?'bok2':'bor'}">${lote.status==='em_andamento'?'Em andamento':lote.status==='finalizado'?'Finalizado':'Postado'}</span></div></div>
+    </div>
+    <div class="peso-box mb16">
+      <div class="fx ac jb"><strong>Peso Entrada Total</strong><span style="font-weight:600">${formatPeso(lote.peso_entrada_total)} KG</span></div>
+      <div class="fx ac jb mt8"><strong>Peso Saída Acumulado</strong><span style="font-weight:600;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(lote.peso_saida_total)} / ${formatPeso(lote.peso_entrada_total)} KG</span></div>
+      <div class="peso-bar mt8"><div class="peso-bar-fill ${completo?'':'incomplete'}" style="width:${pct}%"></div></div>
+      <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar':`Faltam ${formatPeso(Math.max(0,lote.peso_entrada_total-lote.peso_saida_total))} KG`}</p>
+    </div>
+    <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">OS no Lote (${osVinc.length})</h4>
+    <div class="tw mb16"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Peso Entrada</th></tr></thead><tbody>
+    ${osVinc.map(v=>{
+      const os=v.ordens_servico;const ctrl=os?.flash_controle?.[0];
+      return`<tr><td><strong>${os?.numero_os||'—'}</strong></td><td>${os?.clientes?.nome||'—'}</td><td>${ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—'}</td><td>${formatPeso(v.peso_entrada)} KG</td></tr>`
+    }).join('')}
+    </tbody></table></div>
+    <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas Parciais (${saidas.length})</h4>
+    ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)}${s.perfis?.nome?' — '+s.perfis.nome:''}</span></div>${s.observacao?`<p class="ts mt8">${s.observacao}</p>`:''}</div>`).join(''):'<p class="tlt ts mb16">Nenhuma saída ainda.</p>'}
+    ${lote.obs_finalizacao?`<div class="peso-box mt8" style="border-left:4px solid var(--ok)"><strong>Obs. Finalização:</strong><p class="mt8">${lote.obs_finalizacao}</p></div>`:''}
+  `;
+  document.getElementById('mLoteBody').innerHTML=html;
+  const ft=document.getElementById('mLoteFt');
+  if(emAnd){
+    ft.innerHTML=`<button class="btn bo" onclick="cM('mLote')">Fechar</button> <button class="btn bok" onclick="abrirLoteSaida(${lote.id})">+ Lançar Saída</button>${completo?` <button class="btn ba" onclick="abrirFinLote(${lote.id})">Finalizar Lote</button>`:''}`;
+  }else{
+    ft.innerHTML=`<button class="btn bo" onclick="cM('mLote')">Fechar</button>${lote.status==='finalizado'&&isAdmin()?` <button class="btn ba bsm" onclick="marcarLotePostado(${lote.id})">Marcar Postado</button>`:''}`;
+  }
+}
+function abrirLoteSaida(loteId){
+  clearPending();
+  document.getElementById('lsSaidaLoteId').value=loteId;
+  document.getElementById('lsSaidaPeso').value='';
+  document.getElementById('lsSaidaObs').value='';
+  document.getElementById('lsSaidaFotosPrev').innerHTML='';
+  cM('mLote');oM('mLoteSaida');
+}
+async function svLoteSaida(){
+  const loteId=parseInt(document.getElementById('lsSaidaLoteId').value);
+  const peso=parsePesoInput(document.getElementById('lsSaidaPeso').value);
+  const obs=document.getElementById('lsSaidaObs').value.trim()||null;
+  if(!peso||peso<=0){toast('Informe peso válido','er');return}
+  const btn=document.getElementById('btnLoteSaida');btn.disabled=true;btn.textContent='Salvando...';
+  try{
+    const{data:saida,error}=await sb.from('flash_lote_saidas').insert({lote_id:loteId,peso_kg:peso,observacao:obs,usuario_id:U?.id}).select().single();
+    if(error)throw error;
+    // upload fotos se houver
+    const files=getPendingFiles();
+    for(const f of files){
+      const ext=f.name.split('.').pop()||'jpg';
+      const path=`lotes/${loteId}/saida/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const{error:eUp}=await sb.storage.from('flash-fotos').upload(path,f,{contentType:f.type});
+      if(!eUp)await sb.from('flash_lote_fotos').insert({lote_id:loteId,tipo_foto:'saida',caminho_arquivo:path,nome_arquivo:f.name,tamanho_bytes:f.size,usuario_id:U?.id,saida_id:saida.id});
+    }
+    clearPending();
+    toast('Saída lançada!');cM('mLoteSaida');await abrirDetalhesLote(loteId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Lançar Saída'}
+}
+function abrirFinLote(loteId){
+  const lote=FL_LOTES.find(l=>l.id===loteId)||_loteAtual;
+  document.getElementById('fnLoteId').value=loteId;
+  document.getElementById('fnLoteObs').value='';
+  document.getElementById('fnLoteResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada Total</strong><span>${formatPeso(lote?.peso_entrada_total||0)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(lote?.peso_saida_total||0)} KG</span></div><p class="ts tlt mt8">Ao finalizar, todas as OS vinculadas serão finalizadas automaticamente.</p></div>`;
+  cM('mLote');oM('mFinLote');
+}
+async function confirmarFinLote(){
+  const loteId=parseInt(document.getElementById('fnLoteId').value);
+  const obs=document.getElementById('fnLoteObs').value.trim();
+  if(!obs){toast('Informe a observação de finalização','er');return}
+  const btn=document.getElementById('btnFinLote');btn.disabled=true;btn.textContent='Finalizando...';
+  try{
+    // Atualizar lote
+    await sb.from('flash_lotes').update({status:'finalizado',obs_finalizacao:obs,atualizado_em:new Date().toISOString()}).eq('id',loteId);
+    // Buscar OS do lote e finalizar todas
+    const{data:vinculos}=await sb.from('flash_lote_os').select('os_id').eq('lote_id',loteId);
+    const osIds=(vinculos||[]).map(v=>v.os_id);
+    if(osIds.length){
+      await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',osIds);
+      // registrar movimentacao em cada OS
+      const movs=osIds.map(osId=>({os_id:osId,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:`Finalizado via Lote — ${obs}`}));
+      await sb.from('movimentacoes_os').insert(movs);
+    }
+    toast('Lote finalizado! '+osIds.length+' OS finalizadas.');
+    cM('mFinLote');go('finalizados');
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
+}
+async function marcarLotePostado(loteId){
+  if(!confirm('Marcar lote como postado?'))return;
+  await sb.from('flash_lotes').update({status:'postado',atualizado_em:new Date().toISOString()}).eq('id',loteId);
+  const{data:vinculos}=await sb.from('flash_lote_os').select('os_id').eq('lote_id',loteId);
+  const osIds=(vinculos||[]).map(v=>v.os_id);
+  if(osIds.length)await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).in('id',osIds);
+  toast('Lote postado!');cM('mLote');await pgF(document.getElementById('pg'));
 }
 
 // ===== DETALHES =====
@@ -534,7 +926,7 @@ async function pgDet(el,id){
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
   const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
   const canPost=isAdmin()||(os.status==='finalizada'&&podeEditar('postagem'));const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}<button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="go('producao')">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Cliente</div><div style="font-size:16px;font-weight:500">${os.clientes?.nome||'—'}</div></div>
@@ -594,7 +986,7 @@ async function loadFlashCtrl(osId){
     </div>`:''}
     ${ctrl?.obs_finalizacao?`<div class="peso-box" style="border-left:4px solid var(--ok)"><strong>Obs. Finalização:</strong><p class="mt8">${ctrl.obs_finalizacao}</p></div>`:''}
     <div class="mb16">
-      <div class="fx ac jb"><h4 style="font-size:14px;font-weight:600">Fotos de Entrada (${fEnt.length})</h4>${canManage?`<label class="btn bo bsm cp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar<input type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="addMoreFlashFotos(${osId},'entrada',this)"></label>`:''}</div>
+      <div class="fx ac jb"><h4 style="font-size:14px;font-weight:600">Fotos de Entrada (${fEnt.length})</h4>${canManage?`<label class="btn bo bsm cp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar<input type="file" accept="image/*" multiple style="display:none" onchange="addMoreFlashFotos(${osId},'entrada',this)"></label>`:''}</div>
       <div class="foto-grid">${fEnt.map(f=>`<div class="foto-thumb"><img src="${STORAGE_URL}${f.caminho_arquivo}" onclick="openLightbox('${STORAGE_URL}${f.caminho_arquivo}')">${canDelete?`<button class="foto-del" onclick="event.stopPropagation();rmFlashFoto(${f.id},'${f.caminho_arquivo}',${osId})">&times;</button>`:''}</div>`).join('')}${fEnt.length===0?'<p class="tlt ts">Nenhuma foto</p>':''}</div>
     </div>
     <div class="mb16">
@@ -678,7 +1070,7 @@ async function confirmarFinFlash(){
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
     await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).eq('id',osId);
     await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Flash finalizado — '+obs});
-    toast('Flash finalizado!');cM('mFinFlash');pgDet(document.getElementById('pg'),osId);
+    toast('Flash finalizado!');cM('mFinFlash');go('finalizados');
   }catch(x){toast(x.message,'er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
 }
 
@@ -712,9 +1104,12 @@ async function avE(id){
     toast(msg,'er');return
   }
   const r=typeof data==='string'?JSON.parse(data):data;
-  toast(r.message);pgDet(document.getElementById('pg'),id)
+  // Se finalizou (última etapa), vai para finalizados
+  const{data:osAtual}=await sb.from('ordens_servico').select('status').eq('id',id).single();
+  if(osAtual?.status==='finalizada'){toast(r.message+' ✓ OS finalizada!');go('finalizados')}
+  else{toast(r.message);pgDet(document.getElementById('pg'),id)}
 }
-async function poOS(id){if(!confirm('Marcar como postado?'))return;await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id);toast('Postado!');pgDet(document.getElementById('pg'),id)}
+async function poOS(id){if(!confirm('Marcar como postado?'))return;await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id);toast('Postado!');go('finalizados')}
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
 async function svPrz(){
   const eid=parseInt(document.getElementById('pEid').value),nd=document.getElementById('pDt').value,j=document.getElementById('pJt').value.trim();
@@ -981,6 +1376,56 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
   app.innerHTML=h;
 }
 
+
+// ===== FICHA DE ENTRADA FLASH (impressão) =====
+async function imprimirFichaFlashOS(osId){
+  const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
+  if(_o&&_o.id===osId){
+    imprimirFichaFlash({numero_os:_o.numero_os,cliente:_o.clientes?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:_o.data_entrada});
+  }
+}
+function imprimirFichaFlash(dados){
+  const{numero_os,cliente,cor,peso_kg,data_entrada}=dados;
+  const corLabel={ouro:'Ouro',prata:'Prata',diamante:'Diamante'}[cor]||cor||'—';
+  const corHex={ouro:'#D4A853',prata:'#9CA3AF',diamante:'#8B5CF6'}[cor]||'#1B2A4A';
+  const dataFmt=data_entrada?new Date(data_entrada+'T00:00:00').toLocaleDateString('pt-BR'):'—';
+  const w=window.open('','_blank','width=320,height=420');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Flash ${numero_os}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Arial',sans-serif;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:8px}
+    .ficha{width:280px;border:2px solid #1B2A4A;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .topo{background:#1B2A4A;color:#fff;text-align:center;padding:10px 8px 8px}
+    .logo{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#D4A853;font-weight:700;margin-bottom:3px}
+    .titulo{font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px}
+    .num{font-size:22px;font-weight:700;color:#fff;margin:4px 0 2px;letter-spacing:1px}
+    .corpo{padding:12px 14px}
+    .row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f0ede8}
+    .row:last-child{border-bottom:none}
+    .label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#9CA3AF;font-weight:600}
+    .valor{font-size:13px;font-weight:700;color:#1B2A4A;text-align:right;max-width:160px;word-break:break-word}
+    .cor-badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;background:${corHex}20;color:${corHex};border:1px solid ${corHex}50}
+    .rodape{background:#f4f1ec;text-align:center;padding:8px;font-size:9px;color:#9CA3AF;letter-spacing:.5px}
+    @media print{body{padding:0}@page{margin:4mm;size:80mm auto}}
+  </style></head>
+  <body onload="window.print()">
+  <div class="ficha">
+    <div class="topo">
+      <div class="logo">Scarlat Galvânica</div>
+      <div class="titulo">Ficha de Entrada — Flash</div>
+      <div class="num">${numero_os}</div>
+    </div>
+    <div class="corpo">
+      <div class="row"><span class="label">Cliente</span><span class="valor">${cliente||'—'}</span></div>
+      <div class="row"><span class="label">Cor do Banho</span><span class="cor-badge">${corLabel}</span></div>
+      <div class="row"><span class="label">Peso Entrada</span><span class="valor">${formatPeso(peso_kg)} KG</span></div>
+      <div class="row"><span class="label">Data Entrada</span><span class="valor">${dataFmt}</span></div>
+    </div>
+    <div class="rodape">✂ Destacar e fixar na OS</div>
+  </div>
+  </body></html>`);
+  w.document.close();
+}
 
 init();
 </script>
