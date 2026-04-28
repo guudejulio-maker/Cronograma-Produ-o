@@ -640,8 +640,11 @@ async function pgK(el){const C=[...ET,'finalizado'];el.innerHTML=`<div class="ph
 // ===== FLASH (lista com filtros mês/ano) =====
 let FL=[];
 let FL_LOTES=[];
+let _flSel=new Set();
+
 async function pgF(el){
-  el.innerHTML=`<div class="ph"><div><h2>Flash</h2><p class="phs">Prazo de 7 dias</p></div><div class="fx g8"><button class="btn bo" onclick="abrirCriarLote()">&#128230; Criar Lote</button><button class="btn ba" onclick="go('nova-os')">+ Novo Flash</button></div></div>
+  _flSel=new Set();
+  el.innerHTML=`<div class="ph"><div><h2>Flash</h2><p class="phs">Prazo de 7 dias</p></div><button class="btn ba" onclick="go('nova-os')">+ Novo Flash</button></div>
   <div class="stats" id="fS"></div>
   <div class="tabs" style="margin-bottom:16px"><button class="tb on" id="tabFlOS" onclick="switchFlTab('os',this)">OS Individuais</button><button class="tb" id="tabFlLotes" onclick="switchFlTab('lotes',this)">Lotes</button></div>
   <div id="flTabOS">
@@ -651,10 +654,21 @@ async function pgF(el){
     <select class="fc" id="flAno" onchange="fFL()"><option value="">Todos os anos</option></select>
     <select class="fc" id="flS" onchange="fFL()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select>
   </div>
-  <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Entrada</th><th>Saída</th><th>Lote</th><th>Data</th><th>Prazo</th><th>Alerta</th><th>Status</th></tr></thead><tbody id="tF"></tbody></table></div>
+  <div id="flBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--pri);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">
+    <span id="flBulkCount" style="color:#fff;font-weight:600;font-size:14px;flex:1"></span>
+    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkCriarLote()">&#128230; Criar Lote</button>
+    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkFinalizar()">&#10003; Finalizar</button>
+    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkPostar()">&#128230; Postado</button>
+    <button class="btn bsm" style="background:rgba(220,38,38,.6);color:#fff;border:none" onclick="bulkExcluir()">&#10007; Excluir</button>
+    <button class="btn bsm" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2)" onclick="limparSelFlash()">Cancelar</button>
+  </div>
+  <div class="tw"><table><thead><tr>
+    <th style="width:36px;padding:8px"><input type="checkbox" id="chkFlAll" onclick="toggleFlAll(this)" style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer"></th>
+    <th>OS</th><th>Cliente</th><th>Cor</th><th>Entrada</th><th>Saida</th><th>Lote</th><th>Data</th><th>Prazo</th><th>Alerta</th><th>Status</th>
+  </tr></thead><tbody id="tF"></tbody></table></div>
   </div>
   <div id="flTabLotes" style="display:none">
-  <div class="tw"><table><thead><tr><th>Lote</th><th>OS</th><th>Peso Entrada</th><th>Peso Saída</th><th>Criado em</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tLotes"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Lote</th><th>OS</th><th>Peso Entrada</th><th>Peso Saida</th><th>Criado em</th><th>Status</th><th>Acao</th></tr></thead><tbody id="tLotes"></tbody></table></div>
   </div>`;
   const[r1,r2,r3,r4,r5]=await Promise.all([
     sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','flash').order('data_entrada',{ascending:false}),
@@ -665,8 +679,7 @@ async function pgF(el){
   ]);
   FL=r1.data||[];FL_LOTES=r5.data||[];
   const fcs={};(r2.data||[]).forEach(f=>fcs[f.os_id]=f);
-  const fotoCount={};(r3.data||[]).forEach(f=>{if(!fotoCount[f.os_id])fotoCount[f.os_id]={entrada:0,saida:0};fotoCount[f.os_id][f.tipo_foto]++});
-  window._flFcs=fcs;window._flFoto=fotoCount;
+  window._flFcs=fcs;
   const anos=[...new Set((r4.data||[]).map(o=>o.data_entrada?.substring(0,4)).filter(Boolean))].sort().reverse();
   const selAno=document.getElementById('flAno');anos.forEach(a=>selAno.innerHTML+=`<option value="${a}">${a}</option>`);
   const an=FL.filter(f=>f.status==='em_andamento'&&!f.lote_id);
@@ -689,24 +702,146 @@ function fFL(){
   const mes=document.getElementById('flMes')?.value||'';
   const ano=document.getElementById('flAno')?.value||'';
   const s=document.getElementById('flS')?.value||'';
-  const fcs=window._flFcs||{},fc=window._flFoto||{};
+  const fcs=window._flFcs||{};
   let r=FL.filter(o=>{
     if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
     if(s&&o.status!==s)return!1;
     if(ano&&!o.data_entrada?.startsWith(ano))return!1;
     if(mes&&o.data_entrada){const m=parseInt(o.data_entrada.substring(5,7));if(m!==parseInt(mes))return!1}
-    return!0
+    return!0;
   });
   r.sort(sortByUrgency);
   const tbody=document.getElementById('tF');if(!tbody)return;
   tbody.innerHTML=r.length?r.map(o=>{
-    const ctrl=fcs[o.id];const cnt=fc[o.id]||{entrada:0,saida:0};
+    const ctrl=fcs[o.id];
     const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—';
     const pesoEnt=ctrl?formatPeso(ctrl.peso_kg)+' KG':(o.volume||'—');
-    const pesoSai=ctrl?.peso_saida_total!==undefined&&ctrl?.peso_saida_total!==null?formatPeso(ctrl.peso_saida_total)+' KG':'—';
+    const pesoSai=ctrl?.peso_saida_total!=null?formatPeso(ctrl.peso_saida_total)+' KG':'0 KG';
     const loteBdg=o.lote_id?`<span class="bdg" style="background:#EDE9FE;color:#5B21B6;font-size:11px">&#128230; ${FL_LOTES.find(l=>l.id===o.lote_id)?.numero_lote||'Lote'}</span>`:'—';
-    return`<tr data-os-id="${o.id}" class="${al(o.data_prevista_conclusao)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td>${corBdg}</td><td>${pesoEnt}</td><td>${pesoSai}</td><td>${loteBdg}</td><td>${fd(o.data_entrada)}</td><td>${fd(o.data_prevista_conclusao)}</td><td>${ba(o.data_prevista_conclusao)}</td><td><span class="bdg ${o.status==='em_andamento'&&!o.lote_id?'bok2':o.lote_id?'':'bor'}" style="${o.lote_id?'background:#EDE9FE;color:#5B21B6':''}">${o.lote_id?'Em Lote':ls(o.status)}</span></td></tr>`
-  }).join(''):'<tr><td colspan="10" class="tc tlt" style="padding:40px">Nenhum flash</td></tr>';
+    const sel=_flSel.has(o.id);
+    const stLbl=o.lote_id?'Em Lote':ls(o.status);
+    const stStyle=o.lote_id?'background:#EDE9FE;color:#5B21B6':(o.status==='em_andamento'?'background:var(--okb);color:var(--okt)':'background:var(--orb);color:var(--ort)');
+    return`<tr data-os-id="${o.id}" style="${sel?'background:rgba(212,168,83,.12)':''}">
+      <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px;width:36px">
+        <input type="checkbox" class="flchk" data-id="${o.id}" ${sel?'checked':''} style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer" onchange="toggleFlSel(${o.id},this.checked)">
+      </td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><strong>${o.numero_os}</strong></td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${o.clientes?.nome||'—'}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${corBdg}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${pesoEnt}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${pesoSai}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${loteBdg}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_entrada)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_prevista_conclusao)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${ba(o.data_prevista_conclusao)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><span class="bdg" style="${stStyle}">${stLbl}</span></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="11" class="tc tlt" style="padding:40px">Nenhum flash</td></tr>';
+  const allChk=document.getElementById('chkFlAll');
+  if(allChk)allChk.checked=r.length>0&&r.every(o=>_flSel.has(o.id));
+  atualizarBulkBar();
+}
+function toggleFlSel(osId,checked){
+  if(checked)_flSel.add(osId);else _flSel.delete(osId);
+  const row=document.querySelector(`tr[data-os-id="${osId}"]`);
+  if(row)row.style.background=checked?'rgba(212,168,83,.12)':'';
+  const rows=[...document.querySelectorAll('.flchk')];
+  const allChk=document.getElementById('chkFlAll');
+  if(allChk)allChk.checked=rows.length>0&&rows.every(c=>c.checked);
+  atualizarBulkBar();
+}
+function toggleFlAll(chk){
+  document.querySelectorAll('.flchk').forEach(c=>{
+    const id=parseInt(c.dataset.id);
+    c.checked=chk.checked;
+    if(chk.checked)_flSel.add(id);else _flSel.delete(id);
+    const row=document.querySelector(`tr[data-os-id="${id}"]`);
+    if(row)row.style.background=chk.checked?'rgba(212,168,83,.12)':'';
+  });
+  atualizarBulkBar();
+}
+function limparSelFlash(){
+  _flSel.clear();
+  document.querySelectorAll('.flchk').forEach(c=>c.checked=false);
+  const allChk=document.getElementById('chkFlAll');if(allChk)allChk.checked=false;
+  document.querySelectorAll('tr[data-os-id]').forEach(r=>r.style.background='');
+  atualizarBulkBar();
+}
+function atualizarBulkBar(){
+  const bar=document.getElementById('flBulkBar');
+  const count=document.getElementById('flBulkCount');
+  if(!bar)return;
+  if(_flSel.size>0){
+    bar.style.display='flex';
+    count.textContent=`${_flSel.size} OS selecionada${_flSel.size>1?'s':''}`;
+  }else{bar.style.display='none';}
+}
+async function bulkCriarLote(){
+  if(_flSel.size<2){toast('Selecione pelo menos 2 OS para criar um lote','er');return}
+  const ossSel=FL.filter(o=>_flSel.has(o.id));
+  const clientes=new Set(ossSel.map(o=>o.cliente_id));
+  if(clientes.size>1){toast('Lote so pode ter OS do mesmo cliente!','er');return}
+  const emLote=ossSel.filter(o=>o.lote_id);
+  if(emLote.length){toast(`${emLote.length} OS ja estao em lote. Desmarque-as.`,'er');return}
+  const[r1,r2]=await Promise.all([
+    sb.from('ordens_servico').select('id,numero_os,cliente_id,volume,clientes(nome)').in('id',[..._flSel]),
+    sb.from('flash_controle').select('os_id,cor,peso_kg').in('os_id',[..._flSel])
+  ]);
+  const ctrlMap={};(r2.data||[]).forEach(fc=>ctrlMap[fc.os_id]=fc);
+  _loteOsDisponiveis=(r1.data||[]);
+  _loteMap={};
+  _loteOsDisponiveis.forEach(o=>{
+    const ctrl=ctrlMap[o.id]||null;
+    _loteMap[o.id]={os:o,ctrl,clienteId:o.cliente_id,pesoKg:Number(ctrl?.peso_kg||0)};
+  });
+  window._loteSelIds=new Set([..._flSel]);
+  window._loteClienteId=[...clientes][0];
+  let totalPeso=0;
+  _flSel.forEach(id=>{totalPeso+=(_loteMap[id]?.pesoKg||0);});
+  document.getElementById('loteCliFilter').value='';
+  filtrarOsParaLote();
+  const resumo=document.getElementById('loteResumo');
+  if(resumo){resumo.style.display='';document.getElementById('loteQtdSel').textContent=_flSel.size;document.getElementById('lotePesoSel').textContent=formatPeso(totalPeso)+' KG';}
+  oM('mCriarLote');
+}
+async function bulkFinalizar(){
+  if(_flSel.size===0)return;
+  const ossSel=FL.filter(o=>_flSel.has(o.id)&&o.status==='em_andamento');
+  if(ossSel.length===0){toast('Nenhuma OS em andamento selecionada','er');return}
+  const obs=prompt(`Finalizar ${ossSel.length} OS?\nObservacao de finalizacao:`);
+  if(obs===null)return;
+  if(!obs.trim()){toast('Observacao obrigatoria','er');return}
+  const ids=ossSel.map(o=>o.id);
+  try{
+    await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',ids);
+    const movs=ids.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalizacao em massa - '+obs}));
+    await sb.from('movimentacoes_os').insert(movs);
+    await sb.from('flash_controle').update({obs_finalizacao:obs}).in('os_id',ids);
+    toast(`${ids.length} OS finalizadas!`);limparSelFlash();go('finalizados');
+  }catch(x){toast(x.message||'Erro','er')}
+}
+async function bulkPostar(){
+  if(_flSel.size===0)return;
+  const ossSel=FL.filter(o=>_flSel.has(o.id)&&(o.status==='finalizada'||o.status==='em_andamento'));
+  if(ossSel.length===0){toast('Nenhuma OS disponivel','er');return}
+  if(!confirm(`Marcar ${ossSel.length} OS como Postadas?`))return;
+  const ids=ossSel.map(o=>o.id);
+  try{
+    await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).in('id',ids);
+    toast(`${ids.length} OS postadas!`);limparSelFlash();go('finalizados');
+  }catch(x){toast(x.message||'Erro','er')}
+}
+async function bulkExcluir(){
+  if(_flSel.size===0)return;
+  if(!isAdmin()){toast('Apenas admin pode excluir','er');return}
+  if(!confirm(`Excluir ${_flSel.size} OS? Irreversivel.`))return;
+  if(!confirm(`CONFIRMAR exclusao?`))return;
+  const ids=[..._flSel];
+  try{
+    await sb.from('ordens_servico').delete().in('id',ids);
+    toast(`${ids.length} OS excluidas`);limparSelFlash();
+    await pgF(document.getElementById('pg'));
+  }catch(x){toast(x.message||'Erro','er')}
 }
 function renderLotes(){
   const tbody=document.getElementById('tLotes');if(!tbody)return;
@@ -714,7 +849,7 @@ function renderLotes(){
     const osCount=l.flash_lote_os?.length||0;
     const stBdg=l.status==='em_andamento'?'bok2':l.status==='finalizado'?'bor':'ber2';
     const stLabel=l.status==='em_andamento'?'Em andamento':l.status==='finalizado'?'Finalizado':l.status==='postado'?'Postado':'Cancelado';
-    return`<tr><td><strong style="color:var(--acc)">${l.numero_lote}</strong></td><td>${osCount} OS</td><td>${formatPeso(l.peso_entrada_total)} KG</td><td>${formatPeso(l.peso_saida_total)} KG</td><td>${fd(l.criado_em?.substring(0,10))}</td><td><span class="bdg ${stBdg}">${stLabel}</span></td><td><button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Gerenciar</button></td></tr>`
+    return`<tr><td><strong style="color:var(--acc)">${l.numero_lote}</strong></td><td>${osCount} OS</td><td>${formatPeso(l.peso_entrada_total)} KG</td><td>${formatPeso(l.peso_saida_total)} KG</td><td>${fd(l.criado_em?.substring(0,10))}</td><td><span class="bdg ${stBdg}">${stLabel}</span></td><td><button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Gerenciar</button></td></tr>`;
   }).join(''):'<tr><td colspan="7" class="tc tlt" style="padding:40px">Nenhum lote criado</td></tr>';
 }
 
