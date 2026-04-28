@@ -226,6 +226,14 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="fg mt16"><label>Observação de Finalização *</label><textarea id="fnLoteObs" class="fc" placeholder="Observação final..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mFinLote')">Cancelar</button><button class="btn bok" onclick="confirmarFinLote()" id="btnFinLote">Confirmar Finalização</button></div></div></div>
 
+<!-- Modal Postagem Folheação -->
+<div class="modal" id="mPostagem"><div class="mc" style="max-width:480px"><div class="mh"><h3>Postar OS</h3><button class="mx" onclick="cM('mPostagem')">&times;</button></div><div class="mb">
+<input type="hidden" id="poOsId">
+<div class="peso-box mb16"><p class="ts">A OS será marcada como <strong>Postada</strong> e o cliente poderá ver o código de rastreio no link de acompanhamento.</p></div>
+<div class="fg"><label>Código de Rastreio *</label><input type="text" id="poCodRastreio" class="fc" placeholder="Ex: BR123456789BR" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+<div class="fg"><label>Observação (opcional)</label><textarea id="poObs" class="fc" placeholder="Informações adicionais para o cliente..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mPostagem')">Cancelar</button><button class="btn bok" onclick="confirmarPostagem()" id="btnPostagem">Confirmar Postagem</button></div></div></div>
+
 <!-- Lightbox -->
 <div class="lightbox" id="lbox" onclick="this.classList.remove('on')"><button class="lightbox-close" onclick="document.getElementById('lbox').classList.remove('on')">&times;</button><img id="lboxImg" src=""></div>
 
@@ -594,8 +602,149 @@ async function tgCliA(id,a){await sb.from('clientes').update({ativo:a}).eq('id',
 
 // ===== PRODUÇÃO =====
 let AO=[];
-async function pgP(el){el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">OS em andamento</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="fil"><input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()"><select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select><select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option></select><select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select></div><div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tP"></tbody></table></div><div class="ts tlt mt16" id="tC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('criado_em',{ascending:false});AO=data||[];fOS()}
-function fOS(){const t=(document.getElementById('fT')?.value||'').toLowerCase(),tp=document.getElementById('fTp')?.value||'',et=document.getElementById('fEt')?.value||'',a=document.getElementById('fAl')?.value||'';let r=AO.filter(o=>{if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;if(tp&&o.tipo!==tp)return!1;if(et&&o.etapa_atual!==et)return!1;if(a&&alOrig(o)!==a)return!1;return!0});document.getElementById('tC').textContent=r.length+' registro(s)';r.sort(sortByUrgency);document.getElementById('tP').innerHTML=r.length?r.map(o=>{const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;return`<tr data-os-id="${o.id}" class="${alOrig(o)==='vencido'?'re':alOrig(o)==='vence_amanha'?'rw':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'—'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td><span class="prz-orig">${fd(orig)}</span></td><td>${fd(o.data_prevista_conclusao)} ${baOrig(o)}</td><td>${badgeAtrasoOS(o)}</td>${isAdmin()?`<td><button class="btn bo bsm" onclick="event.stopPropagation();openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="event.stopPropagation();delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}</tr>`}).join(''):'<tr><td colspan="'+(isAdmin()?10:9)+'" class="tc tlt" style="padding:40px">Nenhuma OS em andamento</td></tr>'}
+let _pSel=new Set();
+async function pgP(el){
+  _pSel=new Set();
+  el.innerHTML=`<div class="ph"><div><h2>Produção</h2><p class="phs">OS em andamento</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div>
+  <div class="fil">
+    <input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()">
+    <select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select>
+    <select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option></select>
+    <select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select>
+  </div>
+  <div id="pBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--pri);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">
+    <span id="pBulkCount" style="color:#fff;font-weight:600;font-size:14px;flex:1"></span>
+    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="pBulkFinalizar()">&#10003; Finalizar</button>
+    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="pBulkPostar()">&#128230; Marcar Postado</button>
+    ${isAdmin()?`<button class="btn bsm" style="background:rgba(220,38,38,.6);color:#fff;border:none" onclick="pBulkExcluir()">&#10007; Excluir</button>`:''}
+    <button class="btn bsm" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2)" onclick="limparSelP()">Cancelar</button>
+  </div>
+  <div class="tw"><table><thead><tr>
+    <th style="width:36px;padding:8px"><input type="checkbox" id="chkPAll" onclick="togglePAll(this)" style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer"></th>
+    <th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Peso</th><th>Entrada</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Atraso</th>${isAdmin()?'<th>Ações</th>':''}
+  </tr></thead><tbody id="tP"></tbody></table></div>
+  <div class="ts tlt mt16" id="tC"></div>`;
+  const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('criado_em',{ascending:false});
+  AO=data||[];fOS();
+}
+function fOS(){
+  const t=(document.getElementById('fT')?.value||'').toLowerCase();
+  const tp=document.getElementById('fTp')?.value||'';
+  const et=document.getElementById('fEt')?.value||'';
+  const a=document.getElementById('fAl')?.value||'';
+  let r=AO.filter(o=>{
+    if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
+    if(tp&&o.tipo!==tp)return!1;
+    if(et&&o.etapa_atual!==et)return!1;
+    if(a&&alOrig(o)!==a)return!1;
+    return!0;
+  });
+  document.getElementById('tC').textContent=r.length+' registro(s)';
+  r.sort(sortByUrgency);
+  document.getElementById('tP').innerHTML=r.length?r.map(o=>{
+    const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;
+    const sel=_pSel.has(o.id);
+    return`<tr data-os-id="${o.id}" style="${sel?'background:rgba(212,168,83,.12)':''}">
+      <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px;width:36px">
+        <input type="checkbox" class="pchk" data-id="${o.id}" ${sel?'checked':''} style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer" onchange="togglePSel(${o.id},this.checked)">
+      </td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><strong>${o.numero_os}</strong></td>
+      <td class="cp trn" style="max-width:140px" onclick="location.hash='d/${o.id}'">${o.clientes?.nome||'—'}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><span class="be">${le(o.etapa_atual)||'—'}</span></td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${o.volume||'—'}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_entrada)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><span class="prz-orig">${fd(orig)}</span></td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_prevista_conclusao)} ${baOrig(o)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${badgeAtrasoOS(o)}</td>
+      ${isAdmin()?`<td onclick="event.stopPropagation()"><button class="btn bo bsm" onclick="openEditOS(${o.id})">Editar</button> <button class="btn ber bsm" onclick="delOS(${o.id},'${o.numero_os}')">Excluir</button></td>`:''}
+    </tr>`;
+  }).join(''):'<tr><td colspan="'+(isAdmin()?11:10)+'" class="tc tlt" style="padding:40px">Nenhuma OS em andamento</td></tr>';
+  const allChk=document.getElementById('chkPAll');
+  if(allChk)allChk.checked=r.length>0&&r.every(o=>_pSel.has(o.id));
+  atualizarBulkBarP();
+}
+function togglePSel(osId,checked){
+  if(checked)_pSel.add(osId);else _pSel.delete(osId);
+  const row=document.querySelector(`tr[data-os-id="${osId}"]`);
+  if(row)row.style.background=checked?'rgba(212,168,83,.12)':'';
+  const rows=[...document.querySelectorAll('.pchk')];
+  const allChk=document.getElementById('chkPAll');
+  if(allChk)allChk.checked=rows.length>0&&rows.every(c=>c.checked);
+  atualizarBulkBarP();
+}
+function togglePAll(chk){
+  document.querySelectorAll('.pchk').forEach(c=>{
+    const id=parseInt(c.dataset.id);c.checked=chk.checked;
+    if(chk.checked)_pSel.add(id);else _pSel.delete(id);
+    const row=document.querySelector(`tr[data-os-id="${id}"]`);
+    if(row)row.style.background=chk.checked?'rgba(212,168,83,.12)':'';
+  });
+  atualizarBulkBarP();
+}
+function limparSelP(){
+  _pSel.clear();
+  document.querySelectorAll('.pchk').forEach(c=>c.checked=false);
+  const allChk=document.getElementById('chkPAll');if(allChk)allChk.checked=false;
+  document.querySelectorAll('tr[data-os-id]').forEach(r=>r.style.background='');
+  atualizarBulkBarP();
+}
+function atualizarBulkBarP(){
+  const bar=document.getElementById('pBulkBar');
+  const count=document.getElementById('pBulkCount');
+  if(!bar)return;
+  if(_pSel.size>0){bar.style.display='flex';count.textContent=`${_pSel.size} OS selecionada${_pSel.size>1?'s':''}`;}
+  else{bar.style.display='none';}
+}
+async function pBulkFinalizar(){
+  if(_pSel.size===0)return;
+  const ossSel=AO.filter(o=>_pSel.has(o.id));
+  const obs=prompt(`Finalizar ${ossSel.length} OS?\nObservação de finalização:`);
+  if(obs===null)return;if(!obs.trim()){toast('Observação obrigatória','er');return}
+  const ids=ossSel.map(o=>o.id);
+  try{
+    await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',ids);
+    const movs=ids.map(id=>({os_id:id,etapa_origem:AO.find(o=>o.id===id)?.etapa_atual||'',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalização em massa - '+obs}));
+    await sb.from('movimentacoes_os').insert(movs);
+    toast(`${ids.length} OS finalizadas!`);limparSelP();go('finalizados');
+  }catch(x){toast(x.message||'Erro','er')}
+}
+async function pBulkPostar(){
+  if(_pSel.size===0)return;
+  const ossSel=AO.filter(o=>_pSel.has(o.id));
+  const temFolh=ossSel.some(o=>o.tipo==='folheacao');
+  let cod='';
+  if(temFolh){
+    cod=(prompt(`Postar ${ossSel.length} OS em massa.
+Código de rastreio (único para todas):`)||'').trim().toUpperCase();
+    if(!cod){toast('Código de rastreio obrigatório','er');return}
+  }else{
+    if(!confirm(`Marcar ${ossSel.length} OS como Postadas?`))return;
+  }
+  const ids=ossSel.map(o=>o.id);
+  const upd={status:'postada',data_postagem:new Date().toISOString()};
+  if(cod)upd.codigo_rastreio=cod;
+  try{
+    await sb.from('ordens_servico').update(upd).in('id',ids);
+    if(cod){
+      const movs=ids.map(id=>({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado em massa — Rastreio: '+cod,justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod,visivel_cliente:true}));
+      await sb.from('movimentacoes_os').insert(movs);
+    }
+    toast(`${ids.length} OS postadas!`);limparSelP();go('finalizados');
+  }catch(x){toast(x.message||'Erro','er')}
+}
+async function pBulkExcluir(){
+  if(_pSel.size===0)return;
+  if(!isAdmin()){toast('Apenas admin pode excluir','er');return}
+  if(!confirm(`Excluir ${_pSel.size} OS? Irreversível.`))return;
+  if(!confirm('CONFIRMAR?'))return;
+  const ids=[..._pSel];
+  try{
+    await sb.from('ordens_servico').delete().in('id',ids);
+    toast(`${ids.length} OS excluídas`);limparSelP();
+    await pgP(document.getElementById('pg'));
+  }catch(x){toast(x.message||'Erro','er')}
+}
 
 // ===== FINALIZADOS =====
 async function pgFin(el){
@@ -621,7 +770,9 @@ function fFin(){
   const st=document.getElementById('finSt')?.value||'';
   const mes=document.getElementById('finMes')?.value||'';
   const ano=document.getElementById('finAno')?.value||'';
+  // Default: esconder canceladas a menos que filtro de status esteja ativo
   let r=(window._finAO||[]).filter(o=>{
+    if(!st&&o.status==='cancelada')return!1; // oculta canceladas por padrão
     if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
     if(tp&&o.tipo!==tp)return!1;
     if(st&&o.status!==st)return!1;
@@ -630,8 +781,10 @@ function fFin(){
     if(mes&&dt){const m=parseInt(dt.substring(5,7));if(m!==parseInt(mes))return!1}
     return!0;
   });
-  document.getElementById('tFinC').textContent=r.length+' registro(s)';
-  document.getElementById('tFin').innerHTML=r.length?r.map(o=>`<tr class="cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td>${fd((o.data_conclusao||'').substring(0,10))}</td><td>${badgeAtrasoOS(o)}</td><td><span class="bdg ${o.status==='postada'?'bok2':'bor'}">${ls(o.status)}</span></td></tr>`).join(''):'<tr><td colspan="8" class="tc tlt" style="padding:40px">Nenhuma OS encontrada</td></tr>';
+  const canceladas=(window._finAO||[]).filter(o=>o.status==='cancelada').length;
+  const aviso=!st&&canceladas>0?`<span class="ts tlt"> · ${canceladas} cancelada${canceladas>1?'s':''} oculta${canceladas>1?'s':''} <button class="btn bo bsm" style="padding:2px 8px;font-size:11px" onclick="document.getElementById('finSt').value='cancelada';fFin()">Ver</button></span>`:'';
+  document.getElementById('tFinC').innerHTML=r.length+' registro(s)'+aviso;
+  document.getElementById('tFin').innerHTML=r.length?r.map(o=>`<tr data-os-id="${o.id}" class="cp" onclick="location.hash='d/${o.id}'"><td><strong>${o.numero_os}</strong></td><td class="trn" style="max-width:150px">${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td>${o.volume||'—'}</td><td>${fd(o.data_entrada)}</td><td>${fd((o.data_conclusao||'').substring(0,10))}</td><td>${badgeAtrasoOS(o)}</td><td><span class="bdg ${o.status==='postada'?'bok2':o.status==='cancelada'?'ber2':'bor'}">${ls(o.status)}</span></td></tr>`).join(''):'<tr><td colspan="8" class="tc tlt" style="padding:40px">Nenhuma OS encontrada</td></tr>';
 }
 
 // ===== KANBAN =====
@@ -652,13 +805,12 @@ async function pgF(el){
     <input type="search" class="fc" id="flT" placeholder="OS ou cliente..." oninput="fFL()">
     <select class="fc" id="flMes" onchange="fFL()"><option value="">Todos os meses</option>${MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
     <select class="fc" id="flAno" onchange="fFL()"><option value="">Todos os anos</option></select>
-    <select class="fc" id="flS" onchange="fFL()"><option value="">Status</option><option value="em_andamento">Em andamento</option><option value="finalizada">Finalizada</option><option value="postada">Postada</option><option value="cancelada">Cancelada</option></select>
+    <select class="fc" id="flS" onchange="fFL()"><option value="">Todos</option><option value="em_andamento" selected>Em andamento</option><option value="vencido_prazo">Vencidos</option><option value="finalizada">Finalizada</option><option value="cancelada">Cancelada</option></select>
   </div>
   <div id="flBulkBar" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:var(--pri);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">
     <span id="flBulkCount" style="color:#fff;font-weight:600;font-size:14px;flex:1"></span>
     <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkCriarLote()">&#128230; Criar Lote</button>
     <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkFinalizar()">&#10003; Finalizar</button>
-    <button class="btn bsm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="bulkPostar()">&#128230; Postado</button>
     <button class="btn bsm" style="background:rgba(220,38,38,.6);color:#fff;border:none" onclick="bulkExcluir()">&#10007; Excluir</button>
     <button class="btn bsm" style="background:transparent;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2)" onclick="limparSelFlash()">Cancelar</button>
   </div>
@@ -820,17 +972,7 @@ async function bulkFinalizar(){
     toast(`${ids.length} OS finalizadas!`);limparSelFlash();go('finalizados');
   }catch(x){toast(x.message||'Erro','er')}
 }
-async function bulkPostar(){
-  if(_flSel.size===0)return;
-  const ossSel=FL.filter(o=>_flSel.has(o.id)&&(o.status==='finalizada'||o.status==='em_andamento'));
-  if(ossSel.length===0){toast('Nenhuma OS disponivel','er');return}
-  if(!confirm(`Marcar ${ossSel.length} OS como Postadas?`))return;
-  const ids=ossSel.map(o=>o.id);
-  try{
-    await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).in('id',ids);
-    toast(`${ids.length} OS postadas!`);limparSelFlash();go('finalizados');
-  }catch(x){toast(x.message||'Erro','er')}
-}
+// bulkPostar removido do Flash — Flash nao usa status Postado
 async function bulkExcluir(){
   if(_flSel.size===0)return;
   if(!isAdmin()){toast('Apenas admin pode excluir','er');return}
@@ -1106,7 +1248,7 @@ async function pgDet(el,id){
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
   const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
   const canPost=isAdmin()||(os.status==='finalizada'&&podeEditar('postagem'));const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="poOS(${os.id})">Marcar Postado</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Cliente</div><div style="font-size:16px;font-weight:500">${os.clientes?.nome||'—'}</div></div>
@@ -1289,7 +1431,38 @@ async function avE(id){
   if(osAtual?.status==='finalizada'){toast(r.message+' ✓ OS finalizada!');go('finalizados')}
   else{toast(r.message);pgDet(document.getElementById('pg'),id)}
 }
-async function poOS(id){if(!confirm('Marcar como postado?'))return;await sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id);toast('Postado!');go('finalizados')}
+function abrirPostagem(id){
+  // Flash: postar direto sem modal
+  if(_o&&_o.tipo==='flash'){
+    if(!confirm('Marcar como postado?'))return;
+    sb.from('ordens_servico').update({status:'postada',data_postagem:new Date().toISOString()}).eq('id',id).then(()=>{toast('Postado!');go('finalizados');});
+    return;
+  }
+  // Folheação: abrir modal com código de rastreio
+  document.getElementById('poOsId').value=id;
+  document.getElementById('poCodRastreio').value='';
+  document.getElementById('poObs').value='';
+  const btn=document.getElementById('btnPostagem');btn.disabled=false;btn.textContent='Confirmar Postagem';
+  oM('mPostagem');
+}
+async function poOS(id){abrirPostagem(id);}
+async function confirmarPostagem(){
+  const id=parseInt(document.getElementById('poOsId').value);
+  const cod=document.getElementById('poCodRastreio').value.trim();
+  const obs=document.getElementById('poObs').value.trim()||null;
+  if(!cod){toast('Informe o código de rastreio','er');return}
+  const btn=document.getElementById('btnPostagem');btn.disabled=true;btn.textContent='Salvando...';
+  try{
+    const upd={status:'postada',data_postagem:new Date().toISOString(),codigo_rastreio:cod};
+    await sb.from('ordens_servico').update(upd).eq('id',id);
+    if(obs){
+      await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — Rastreio: '+cod+(obs?' — '+obs:''),justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod+(obs?' — '+obs:''),visivel_cliente:true});
+    }else{
+      await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — Rastreio: '+cod,justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod,visivel_cliente:true});
+    }
+    toast('OS postada! Rastreio: '+cod);cM('mPostagem');go('finalizados');
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Postagem'}
+}
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
 async function svPrz(){
   const eid=parseInt(document.getElementById('pEid').value),nd=document.getElementById('pDt').value,j=document.getElementById('pJt').value.trim();
@@ -1510,10 +1683,13 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
   </div>`;
   if(!isFolh&&flashCtrl){h+=`<div style="margin-top:16px"><span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span></div>`}
   if(os.status==='em_andamento'){h+=`<div style="margin-top:16px"><div class="lb" style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txm);font-weight:500;margin-bottom:6px">Etapa Atual</div><span class="pub-eb">${PUB_EL[os.etapa_atual]||os.etapa_atual}</span></div>`}
+  const codigoRastreio=os.codigo_rastreio||null;
   const prevDate=os.status==='postada'?os.data_postagem:os.status==='finalizada'?os.data_conclusao:os.previsao_conclusao;
   const prevLabel=os.status==='postada'?'Postada em':os.status==='finalizada'?'Concluída em':'Previsão de Conclusão';
   const prevSub=os.status==='em_andamento'?'Data estimada — pode atualizar conforme o andamento':os.status==='finalizada'?'Aguardando postagem':'Obrigado pela preferência!';
-  h+=`<div class="pub-prev"><div class="lbl">${prevLabel}</div><div class="dt">${fdLong(prevDate)}</div><div class="sub2">${prevSub}</div></div></div>`;
+  h+=`<div class="pub-prev"><div class="lbl">${prevLabel}</div><div class="dt">${fdLong(prevDate)}</div><div class="sub2">${prevSub}</div></div>`;
+  if(codigoRastreio&&os.status==='postada'){h+=`<div style="margin-top:16px;background:#D1FAE5;border-radius:12px;padding:16px 20px;text-align:center"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#065F46;font-weight:600;margin-bottom:6px">Código de Rastreio</div><div style="font-size:20px;font-weight:700;color:#065F46;letter-spacing:2px;font-family:monospace">${codigoRastreio}</div><div style="font-size:12px;color:#059669;margin-top:4px">Utilize este código para rastrear seu pedido</div></div>`;}
+  h+=`</div>`;
   // Fotos de entrada do Flash (visível ao cliente)
   if(!isFolh&&fotosEntrada&&fotosEntrada.length>0){
     h+='<div class="pub-card"><div class="pub-card-title">Foto de Entrada da Mercadoria</div>';
