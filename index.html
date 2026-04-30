@@ -596,7 +596,7 @@ async function svCli(){const n=document.getElementById('cN').value.trim();if(!n)
 
 // ===== CADASTROS =====
 async function pgCad(el){el.innerHTML=`<div class="ph"><div><h2>Cadastros</h2><p class="phs">Gestão de clientes</p></div><button class="btn ba" onclick="openNewCli('cadastros')">+ Novo Cliente</button></div><div class="fil"><input type="search" class="fc" id="cadTxt" placeholder="Buscar cliente..." oninput="fCad()" style="min-width:250px"></div><div class="tw"><table><thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Obs</th><th>Status</th>${isAdmin()?'<th>Ações</th>':''}</tr></thead><tbody id="tCad"></tbody></table></div>`;const{data}=await sb.from('clientes').select('*').order('nome');window._cadClis=data||[];fCad()}
-function fCad(){const t=(document.getElementById('cadTxt')?.value||'').toLowerCase();let r=(window._cadClis||[]).filter(c=>{if(t&&!c.nome.toLowerCase().includes(t)&&!(c.email||'').toLowerCase().includes(t)&&!(c.telefone||'').includes(t))return!1;return!0});document.getElementById('tCad').innerHTML=r.length?r.map(c=>`<tr><td><strong>${c.nome}</strong></td><td>${c.telefone||'—'}</td><td>${c.email||'—'}</td><td class="trn" style="max-width:200px">${c.observacoes||'—'}</td><td><span class="bdg ${c.ativo?'bok2':'ber2'}">${c.ativo?'Ativo':'Inativo'}</span></td>${isAdmin()?`<td><button class="btn bo bsm" onclick='openEditCli(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Editar</button> <button class="btn ber bsm" onclick="delCli(${c.id},\`${c.nome}\`)">Excluir</button> ${c.ativo?`<button class="btn bo bsm" onclick="tgCliA(${c.id},false)">Desativar</button>`:`<button class="btn bok bsm" onclick="tgCliA(${c.id},true)">Ativar</button>`}</td>`:''}</tr>`).join(''):'<tr><td colspan="'+(isAdmin()?6:5)+'" class="tc tlt" style="padding:40px">Nenhum</td></tr>'}
+function fCad(){const t=(document.getElementById('cadTxt')?.value||'').toLowerCase();let r=(window._cadClis||[]).filter(c=>{if(t&&!c.nome.toLowerCase().includes(t)&&!(c.email||'').toLowerCase().includes(t)&&!(c.telefone||'').includes(t))return!1;return!0});document.getElementById('tCad').innerHTML=r.length?r.map(c=>`<tr><td><strong>${c.nome}</strong></td><td>${c.telefone||'—'}</td><td>${c.email||'—'}</td><td class="trn" style="max-width:200px">${c.observacoes||'—'}</td><td><span class="bdg ${c.ativo?'bok2':'ber2'}">${c.ativo?'Ativo':'Inativo'}</span></td>${isAdmin()?`<td><button class="btn bo bsm" onclick='openEditCli(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Editar</button> <button class="btn ber bsm" onclick="delCli(${c.id},\`${c.nome}\`)">Excluir</button> ${c.ativo?`<button class="btn bo bsm" onclick="tgCliA(${c.id},false)">Desativar</button>`:`<button class="btn bok bsm" onclick="tgCliA(${c.id},true)">Ativar</button>`}</td>`:''}</tr>`).join(''):'<tr><td colspan="'+(isAdmin()?6:5)+'" class="tc tlt" style="padding:40px">Nenhum</td></tr>';}
 async function delCli(id,nm){if(!confirm(`Excluir "${nm}"?`))return;const{error}=await sb.from('clientes').delete().eq('id',id);if(error){toast('Cliente possui OS vinculadas','er');return}toast('Excluído!');pgCad(document.getElementById('pg'))}
 async function tgCliA(id,a){await sb.from('clientes').update({ativo:a}).eq('id',id);toast(a?'Ativado!':'Desativado!');pgCad(document.getElementById('pg'))}
 
@@ -864,14 +864,14 @@ async function pgF(el){
   </tr></thead><tbody id="tF"></tbody></table></div>
   </div>
   <div id="flTabLotes" style="display:none">
-  <div class="tw"><table><thead><tr><th>Lote</th><th>OS</th><th>Peso Entrada</th><th>Peso Saida</th><th>Criado em</th><th>Status</th><th>Acao</th></tr></thead><tbody id="tLotes"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Lote</th><th>OS</th><th>Cliente</th><th>Cor</th><th>Peso Entrada</th><th>Peso Saída</th><th>Criado em</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tLotes"></tbody></table></div>
   </div>`;
   const[r1,r2,r3,r4,r5]=await Promise.all([
     sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','flash').order('data_entrada',{ascending:false}),
     sb.from('flash_controle').select('os_id,cor,peso_kg,peso_saida_total'),
     sb.from('flash_fotos').select('os_id,tipo_foto'),
     sb.from('ordens_servico').select('data_entrada').eq('tipo','flash'),
-    sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome)))').order('criado_em',{ascending:false})
+    sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false})
   ]);
   FL=r1.data||[];FL_LOTES=r5.data||[];
   const fcs={};(r2.data||[]).forEach(f=>fcs[f.os_id]=f);
@@ -1035,8 +1035,42 @@ function renderLotes(){
     const osCount=l.flash_lote_os?.length||0;
     const stBdg=l.status==='em_andamento'?'bok2':l.status==='finalizado'?'bor':'ber2';
     const stLabel=l.status==='em_andamento'?'Em andamento':l.status==='finalizado'?'Finalizado':l.status==='postado'?'Postado':'Cancelado';
-    return`<tr><td><strong style="color:var(--acc)">${l.numero_lote}</strong></td><td>${osCount} OS</td><td>${formatPeso(l.peso_entrada_total)} KG</td><td>${formatPeso(l.peso_saida_total)} KG</td><td>${fd(l.criado_em?.substring(0,10))}</td><td><span class="bdg ${stBdg}">${stLabel}</span></td><td><button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Gerenciar</button></td></tr>`;
-  }).join(''):'<tr><td colspan="7" class="tc tlt" style="padding:40px">Nenhum lote criado</td></tr>';
+    const pTotal=Number(l.peso_entrada_total||0);
+    const pSaida=Number(l.peso_saida_total||0);
+    const completo=pTotal>0&&pSaida>=pTotal;
+    const pct=pTotal>0?Math.min(100,(pSaida/pTotal)*100):0;
+    // cliente a partir das OS vinculadas
+    const clienteNome=l.flash_lote_os?.[0]?.ordens_servico?.clientes?.nome||'—';
+    // cor badge
+    const corHtml=l.cor?`<span class="bdg b-${l.cor}" style="font-size:11px">${COR_LBL[l.cor]||l.cor}</span>`:'—';
+    // progresso de peso inline
+    const pesoHtml=`<div style="min-width:110px">
+      <div style="font-weight:600;font-size:13px;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(pSaida)} / ${formatPeso(pTotal)} KG</div>
+      <div style="height:4px;background:#E5E1DA;border-radius:3px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${completo?'var(--ok)':'var(--wn)'};border-radius:3px;transition:width .3s"></div></div>
+    </div>`;
+    // fotos count
+    const fotosCount=l.flash_lote_fotos?.length||0;
+    const fotosHtml=fotosCount>0?`<span style="font-size:11px;color:var(--inf)">📷 ${fotosCount}</span>`:'';
+    // ações
+    let acoesHtml=`<button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Ver Detalhes</button>`;
+    if(l.status==='em_andamento'){
+      acoesHtml+=` <button class="btn bok bsm" onclick="abrirLoteSaidaRapido(${l.id})">+ Saída</button>`;
+      if(completo){
+        acoesHtml+=` <button class="btn ba bsm" style="background:var(--acc);font-weight:700" onclick="abrirFinLote(${l.id})">✓ Finalizar</button>`;
+      }
+    }
+    return`<tr style="${completo&&l.status==='em_andamento'?'background:rgba(5,150,105,.04)':''}">
+      <td><strong style="color:var(--acc)">${l.numero_lote}</strong>${fotosHtml?'<br>'+fotosHtml:''}</td>
+      <td style="font-weight:600">${osCount}</td>
+      <td style="font-size:13px">${clienteNome}</td>
+      <td>${corHtml}</td>
+      <td style="font-weight:600">${formatPeso(pTotal)} KG</td>
+      <td>${pesoHtml}</td>
+      <td style="font-size:12px;color:var(--txl)">${fd(l.criado_em?.substring(0,10))}</td>
+      <td><span class="bdg ${stBdg}">${stLabel}</span>${completo&&l.status==='em_andamento'?'<br><span style="font-size:10px;color:var(--ok);font-weight:600">Pronto p/ finalizar</span>':''}</td>
+      <td style="white-space:nowrap">${acoesHtml}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="9" class="tc tlt" style="padding:40px">Nenhum lote criado</td></tr>';
 }
 
 // ===== CRIAR LOTE =====
@@ -1176,48 +1210,92 @@ let _loteAtual=null;
 async function abrirDetalhesLote(loteId){
   document.getElementById('mLoteBody').innerHTML='<div class="spin"></div>';
   document.getElementById('mLoteFt').innerHTML='';
+  // Restaurar título do modal de saída
+  const mhSaida=document.querySelector('#mLoteSaida .mh h3');
+  if(mhSaida)mhSaida.textContent='Lançar Saída do Lote';
   oM('mLote');
-  const[r1,r2,r3]=await Promise.all([
+  const[r1,r2,r3,r4]=await Promise.all([
     sb.from('flash_lotes').select('*').eq('id',loteId).single(),
     sb.from('flash_lote_os').select('*,ordens_servico(numero_os,status,clientes(nome),flash_controle(cor,peso_kg))').eq('lote_id',loteId),
-    sb.from('flash_lote_saidas').select('*,perfis(nome)').eq('lote_id',loteId).order('criado_em',{ascending:false})
+    sb.from('flash_lote_saidas').select('*,perfis(nome)').eq('lote_id',loteId).order('criado_em',{ascending:false}),
+    sb.from('flash_fotos').select('*').in('os_id',(await sb.from('flash_lote_os').select('os_id').eq('lote_id',loteId)).data?.map(v=>v.os_id)||[]).order('criado_em',{ascending:false})
   ]);
-  const lote=r1.data;const osVinc=r2.data||[];const saidas=r3.data||[];
+  const lote=r1.data;const osVinc=r2.data||[];const saidas=r3.data||[];const fotosOS=r4.data||[];
   if(!lote){document.getElementById('mLoteBody').innerHTML='<p class="tlt">Lote não encontrado</p>';return}
   _loteAtual=lote;
   document.getElementById('mLoteTitle').textContent=lote.numero_lote;
   const emAnd=lote.status==='em_andamento';
   const completo=lote.peso_entrada_total>0&&lote.peso_saida_total>=lote.peso_entrada_total;
   const pct=lote.peso_entrada_total>0?Math.min(100,(lote.peso_saida_total/lote.peso_entrada_total)*100):0;
+  // Agrupar fotos por OS
+  const fotosPorOs={};
+  fotosOS.forEach(f=>{if(!fotosPorOs[f.os_id])fotosPorOs[f.os_id]=[];fotosPorOs[f.os_id].push(f);});
+  // Fotos de saída do lote
+  const lsFotoIds=(saidas||[]).map(s=>s.id);
+  let fotosLoteSaida=[];
+  if(lsFotoIds.length){
+    const{data:flf}=await sb.from('flash_lote_fotos').select('*').eq('lote_id',loteId).order('criado_em',{ascending:false});
+    fotosLoteSaida=flf||[];
+  }
   let html=`
     <div class="fr mb16">
       <div><div class="txs tlt" style="text-transform:uppercase">Cor predominante</div><div class="mt8">${lote.cor?`<span class="bdg b-${lote.cor}">${COR_LBL[lote.cor]||lote.cor}</span>`:'—'}</div></div>
       <div><div class="txs tlt" style="text-transform:uppercase">Status</div><div class="mt8"><span class="bdg ${lote.status==='em_andamento'?'bok2':'bor'}">${lote.status==='em_andamento'?'Em andamento':lote.status==='finalizado'?'Finalizado':'Postado'}</span></div></div>
     </div>
-    <div class="peso-box mb16">
+    <div class="peso-box mb16" style="${completo?'border-color:var(--ok);background:rgba(5,150,105,.04)':''}">
       <div class="fx ac jb"><strong>Peso Entrada Total</strong><span style="font-weight:600">${formatPeso(lote.peso_entrada_total)} KG</span></div>
-      <div class="fx ac jb mt8"><strong>Peso Saída Acumulado</strong><span style="font-weight:600;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(lote.peso_saida_total)} / ${formatPeso(lote.peso_entrada_total)} KG</span></div>
+      <div class="fx ac jb mt8"><strong>Peso Saída Acumulado</strong><span style="font-weight:700;font-size:16px;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(lote.peso_saida_total)} / ${formatPeso(lote.peso_entrada_total)} KG</span></div>
       <div class="peso-bar mt8"><div class="peso-bar-fill ${completo?'':'incomplete'}" style="width:${pct}%"></div></div>
-      <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar':`Faltam ${formatPeso(Math.max(0,lote.peso_entrada_total-lote.peso_saida_total))} KG`}</p>
+      <p class="txs" style="color:${completo?'var(--ok)':'var(--wn)'};font-weight:600">${completo?'✓ Peso completo — pronto para finalizar':`Faltam ${formatPeso(Math.max(0,lote.peso_entrada_total-lote.peso_saida_total))} KG para completar`}</p>
     </div>
     <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">OS no Lote (${osVinc.length})</h4>
-    <div class="tw mb16"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Peso Entrada</th></tr></thead><tbody>
+    <div class="tw mb16"><table><thead><tr><th>OS</th><th>Cliente</th><th>Cor</th><th>Peso</th><th>Fotos</th></tr></thead><tbody>
     ${osVinc.map(v=>{
       const os=v.ordens_servico;const ctrl=os?.flash_controle?.[0];
-      return`<tr><td><strong>${os?.numero_os||'—'}</strong></td><td>${os?.clientes?.nome||'—'}</td><td>${ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—'}</td><td>${formatPeso(v.peso_entrada)} KG</td></tr>`
+      const fotos=fotosPorOs[v.os_id]||[];
+      const fotosHtml=fotos.length>0
+        ?`<div style="display:flex;gap:4px;flex-wrap:wrap">${fotos.slice(0,4).map(f=>`<img src="${STORAGE_URL}${f.caminho_arquivo}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--brd)" onclick="openLightbox('${STORAGE_URL}${f.caminho_arquivo}')" onerror="this.style.display='none'">`).join('')}${fotos.length>4?`<span style="font-size:11px;color:var(--txl);align-self:center">+${fotos.length-4}</span>`:''}</div>`
+        :`<span style="font-size:12px;color:var(--txm)">—</span>`;
+      return`<tr>
+        <td><strong class="cp" onclick="location.hash='d/${v.os_id}'">${os?.numero_os||'—'}</strong></td>
+        <td>${os?.clientes?.nome||'—'}</td>
+        <td>${ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:11px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'—'}</td>
+        <td>${formatPeso(v.peso_entrada)} KG</td>
+        <td>${fotosHtml}</td>
+      </tr>`
     }).join('')}
     </tbody></table></div>
     <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas Parciais (${saidas.length})</h4>
-    ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)}${s.perfis?.nome?' — '+s.perfis.nome:''}</span></div>${s.observacao?`<p class="ts mt8">${s.observacao}</p>`:''}</div>`).join(''):'<p class="tlt ts mb16">Nenhuma saída ainda.</p>'}
+    ${saidas.length?saidas.map(s=>{
+      const sFotos=fotosLoteSaida.filter(f=>f.saida_id===s.id);
+      return`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)}${s.perfis?.nome?' — '+s.perfis.nome:''}</span></div>${s.observacao?`<p class="ts mt8">${s.observacao}</p>`:''}`+
+      (sFotos.length>0?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${sFotos.map(f=>`<img src="${STORAGE_URL}${f.caminho_arquivo}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--brd)" onclick="openLightbox('${STORAGE_URL}${f.caminho_arquivo}')" onerror="this.style.display='none'">`).join('')}</div>`:'')+
+      `</div>`;
+    }).join(''):'<p class="tlt ts mb16">Nenhuma saída ainda.</p>'}
     ${lote.obs_finalizacao?`<div class="peso-box mt8" style="border-left:4px solid var(--ok)"><strong>Obs. Finalização:</strong><p class="mt8">${lote.obs_finalizacao}</p></div>`:''}
   `;
   document.getElementById('mLoteBody').innerHTML=html;
   const ft=document.getElementById('mLoteFt');
   if(emAnd){
-    ft.innerHTML=`<button class="btn bo" onclick="cM('mLote')">Fechar</button> <button class="btn bok" onclick="abrirLoteSaida(${lote.id})">+ Lançar Saída</button>${completo?` <button class="btn ba" onclick="abrirFinLote(${lote.id})">Finalizar Lote</button>`:''}`;
+    ft.innerHTML=`<button class="btn bo" onclick="cM('mLote')">Fechar</button> <button class="btn bok" onclick="abrirLoteSaida(${lote.id})">+ Lançar Saída</button>${completo?` <button class="btn ba blg" style="font-weight:700" onclick="abrirFinLote(${lote.id})">✓ Finalizar Lote</button>`:'<button class="btn bo bsm" disabled style="opacity:.4" title="Lance saídas até completar o peso">Finalizar (aguardando peso)</button>'}`;
   }else{
     ft.innerHTML=`<button class="btn bo" onclick="cM('mLote')">Fechar</button>${lote.status==='finalizado'&&isAdmin()?` <button class="btn ba bsm" onclick="marcarLotePostado(${lote.id})">Marcar Postado</button>`:''}`;
   }
+}
+function abrirLoteSaidaRapido(loteId){
+  // Abre direto o modal de saída sem passar pelos detalhes
+  clearPending();
+  document.getElementById('lsSaidaLoteId').value=loteId;
+  document.getElementById('lsSaidaPeso').value='';
+  document.getElementById('lsSaidaObs').value='';
+  document.getElementById('lsSaidaFotosPrev').innerHTML='';
+  const btn=document.getElementById('btnLoteSaida');
+  if(btn){btn.disabled=false;btn.textContent='Lançar Saída'}
+  // Atualiza título do modal com número do lote
+  const lote=FL_LOTES.find(l=>l.id===loteId);
+  const mh=document.querySelector('#mLoteSaida .mh h3');
+  if(mh&&lote)mh.textContent=`Saída — ${lote.numero_lote}`;
+  oM('mLoteSaida');
 }
 function abrirLoteSaida(loteId){
   clearPending();
@@ -1248,6 +1326,9 @@ async function svLoteSaida(){
     }
     clearPending();
     toast('Saída lançada!');cM('mLoteSaida');await abrirDetalhesLote(loteId);
+    // Atualizar lista de lotes em background
+    const{data:lotesUpd}=await sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false});
+    if(lotesUpd){FL_LOTES=lotesUpd;renderLotes();}
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Lançar Saída'}
 }
 function abrirFinLote(loteId){
@@ -1277,7 +1358,11 @@ async function confirmarFinLote(){
       await sb.from('movimentacoes_os').insert(movs);
     }
     toast('Lote finalizado! '+osIds.length+' OS finalizadas.');
-    cM('mFinLote');go('finalizados');
+    cM('mFinLote');
+    // Atualizar lista antes de navegar
+    const{data:lotesUpd2}=await sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false});
+    if(lotesUpd2){FL_LOTES=lotesUpd2;}
+    go('finalizados');
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
 }
 async function marcarLotePostado(loteId){
@@ -1714,20 +1799,26 @@ async function loadPublicOS(token){
     if(os.tipo==='folheacao'){const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
     let flashCtrl=null;
     let flashFotosEntrada=[];
+    let flashFotosSaida=[];
     if(os.tipo==='flash'){
-      const{data:fc}=await sb.from('flash_controle').select('cor').eq('os_id',os.os_id).maybeSingle();
+      const{data:fc}=await sb.from('flash_controle').select('cor,peso_kg,peso_saida_total').eq('os_id',os.os_id).maybeSingle();
       flashCtrl=fc;
-      const{data:ff}=await sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','entrada').order('criado_em',{ascending:true});
-      flashFotosEntrada=ff||[];
+      const[fe,fs]=await Promise.all([
+        sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','entrada').order('criado_em',{ascending:true}),
+        sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','saida').order('criado_em',{ascending:true})
+      ]);
+      flashFotosEntrada=fe.data||[];
+      flashFotosSaida=fs.data||[];
     }
-    renderPublic(os,etapas,flashCtrl,flashFotosEntrada);
+    renderPublic(os,etapas,flashCtrl,flashFotosEntrada,flashFotosSaida);
   }catch(e){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri)">Erro</h2><p style="color:var(--txl)">Tente novamente em instantes.</p></div>'}
 }
 
-async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
+async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida){
   const app=document.getElementById('pubApp');if(!app)return;
   const isFolh=os.tipo==='folheacao';
   fotosEntrada=fotosEntrada||[];
+  fotosSaida=fotosSaida||[];
   const scl={em_andamento:'and',finalizada:'fin',postada:'pos',cancelada:'can'};
   const sic={em_andamento:'⏳',finalizada:'✓',postada:'📦',cancelada:'✕'};
   let h=`<div class="pub-card"><div class="pub-card-title">Informações da OS</div>
@@ -1737,7 +1828,13 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
     <div class="pub-il"><div class="lb">Tipo</div><div class="vl sm">${isFolh?'Folheação':'Flash'}</div></div>
     <div class="pub-il"><div class="lb">Status</div><div><span class="pub-sb ${scl[os.status]||''}">${sic[os.status]||''} ${PUB_SL[os.status]||os.status}</span></div></div>
   </div>`;
-  if(!isFolh&&flashCtrl){h+=`<div style="margin-top:16px"><span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span></div>`}
+  if(!isFolh&&flashCtrl){
+    h+=`<div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">`;
+    if(flashCtrl.cor)h+=`<span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span>`;
+    if(flashCtrl.peso_kg)h+=`<span style="font-size:13px;color:#6B7280">Entrada: <strong style="color:#1B2A4A">${formatPeso(flashCtrl.peso_kg)} KG</strong></span>`;
+    if(flashCtrl.peso_saida_total!=null)h+=`<span style="font-size:13px;color:#6B7280">Saída: <strong style="color:#059669">${formatPeso(flashCtrl.peso_saida_total)} KG</strong></span>`;
+    h+=`</div>`;
+  }
   if(os.status==='em_andamento'){h+=`<div style="margin-top:16px"><div class="lb" style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--txm);font-weight:500;margin-bottom:6px">Etapa Atual</div><span class="pub-eb">${PUB_EL[os.etapa_atual]||os.etapa_atual}</span></div>`}
   const codigoRastreio=os.codigo_rastreio||null;
   const prevDate=os.status==='postada'?os.data_postagem:os.status==='finalizada'?os.data_conclusao:os.previsao_conclusao;
@@ -1747,13 +1844,22 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada){
   if(codigoRastreio&&os.status==='postada'){h+=`<div style="margin-top:16px;background:#D1FAE5;border-radius:12px;padding:16px 20px;text-align:center"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#065F46;font-weight:600;margin-bottom:6px">Código de Rastreio</div><div style="font-size:20px;font-weight:700;color:#065F46;letter-spacing:2px;font-family:monospace">${codigoRastreio}</div><div style="font-size:12px;color:#059669;margin-top:4px">Utilize este código para rastrear seu pedido</div></div>`;}
   h+=`</div>`;
   // Fotos de entrada do Flash (visível ao cliente)
-  if(!isFolh&&fotosEntrada&&fotosEntrada.length>0){
-    h+='<div class="pub-card"><div class="pub-card-title">Foto de Entrada da Mercadoria</div>';
+  if(!isFolh&&fotosEntrada.length>0){
+    h+='<div class="pub-card"><div class="pub-card-title">📦 Foto de Entrada da Mercadoria</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">';
     fotosEntrada.forEach(f=>{
       const url=STORAGE_URL+f.caminho_arquivo;
-      const dt=fh(f.criado_em);
-      h+=`<div style="border:1px solid #E8E4DD;border-radius:12px;overflow:hidden;background:#FAFAF8"><div style="aspect-ratio:1;overflow:hidden;cursor:pointer" onclick="openLightbox('${url}')"><img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block" alt="Foto de entrada"></div><div style="padding:8px 10px;font-size:11px;color:#6B7280;text-align:center;background:#fff;border-top:1px solid #F0EDE8">📅 ${dt}</div></div>`;
+      h+=`<div style="border:1px solid #E8E4DD;border-radius:12px;overflow:hidden;background:#FAFAF8"><div style="aspect-ratio:1;overflow:hidden;cursor:pointer" onclick="openLightbox('${url}')"><img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'" alt="Foto de entrada"></div><div style="padding:8px 10px;font-size:11px;color:#6B7280;text-align:center;background:#fff;border-top:1px solid #F0EDE8">📅 ${fh(f.criado_em)}</div></div>`;
+    });
+    h+='</div></div>';
+  }
+  // Fotos de saída do Flash (visível ao cliente)
+  if(!isFolh&&fotosSaida.length>0){
+    h+='<div class="pub-card"><div class="pub-card-title">✅ Foto de Saída da Mercadoria</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">';
+    fotosSaida.forEach(f=>{
+      const url=STORAGE_URL+f.caminho_arquivo;
+      h+=`<div style="border:1px solid #D1FAE5;border-radius:12px;overflow:hidden;background:#F0FDF4"><div style="aspect-ratio:1;overflow:hidden;cursor:pointer" onclick="openLightbox('${url}')"><img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'" alt="Foto de saída"></div><div style="padding:8px 10px;font-size:11px;color:#059669;text-align:center;background:#fff;border-top:1px solid #D1FAE5">📅 ${fh(f.criado_em)}</div></div>`;
     });
     h+='</div></div>';
   }
