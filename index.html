@@ -771,9 +771,19 @@ async function pBulkAvancarEtapa(){
 async function pBulkFinalizar(){
   if(_pSel.size===0)return;
   const ossSel=AO.filter(o=>_pSel.has(o.id));
+  const temFolh=ossSel.some(o=>o.tipo==='folheacao');
+  if(temFolh){toast('Folheação finaliza avançando etapas — use "Avançar Etapa"','er');return}
   const obs=prompt(`Finalizar ${ossSel.length} OS?\nObservação de finalização:`);
   if(obs===null)return;if(!obs.trim()){toast('Observação obrigatória','er');return}
   const ids=ossSel.map(o=>o.id);
+  // Verificar se alguma OS flash não tem foto de saída
+  const{data:fotos}=await sb.from('flash_fotos').select('os_id').in('os_id',ids).eq('tipo_foto','saida');
+  const comFoto=new Set((fotos||[]).map(f=>f.os_id));
+  const semFoto=ossSel.filter(o=>!comFoto.has(o.id));
+  if(semFoto.length>0){
+    const nomes=semFoto.map(o=>o.numero_os).join(', ');
+    if(!confirm(`⚠️ ${semFoto.length} OS sem foto de saída: ${nomes}\n\nDeseja finalizar mesmo assim?`))return;
+  }
   try{
     await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',ids);
     const movs=ids.map(id=>({os_id:id,etapa_origem:AO.find(o=>o.id===id)?.etapa_atual||'',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalização em massa - '+obs}));
@@ -1036,6 +1046,14 @@ async function bulkFinalizar(){
   if(obs===null)return;
   if(!obs.trim()){toast('Observacao obrigatoria','er');return}
   const ids=ossSel.map(o=>o.id);
+  // Verificar fotos de saída
+  const{data:fotos}=await sb.from('flash_fotos').select('os_id').in('os_id',ids).eq('tipo_foto','saida');
+  const comFoto=new Set((fotos||[]).map(f=>f.os_id));
+  const semFoto=ossSel.filter(o=>!comFoto.has(o.id));
+  if(semFoto.length>0){
+    const nomes=semFoto.map(o=>o.numero_os).join(', ');
+    if(!confirm(`⚠️ ${semFoto.length} OS sem foto de saída: ${nomes}\n\nDeseja finalizar mesmo assim?`))return;
+  }
   try{
     await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',ids);
     const movs=ids.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalizacao em massa - '+obs}));
@@ -1227,6 +1245,7 @@ async function confirmarCriarLote(){
     if(eVinc)throw eVinc;
     await sb.from('ordens_servico').update({lote_id:lote.id}).in('id',[...sel]);
     toast(`✓ Lote ${numero} criado com ${sel.size} OS!`);
+    btn.disabled=false;btn.textContent='Criar Lote';
     cM('mCriarLote');
     await pgF(document.getElementById('pg'));
     switchFlTab('lotes',document.getElementById('tabFlLotes'));
@@ -1353,7 +1372,7 @@ async function svLoteSaida(){
       if(!eUp)await sb.from('flash_lote_fotos').insert({lote_id:loteId,tipo_foto:'saida',caminho_arquivo:path,nome_arquivo:f.name,tamanho_bytes:f.size,usuario_id:U?.id,saida_id:saida.id});
     }
     clearPending();
-    toast('Saída lançada!');cM('mLoteSaida');await abrirDetalhesLote(loteId);
+    toast('Saída lançada!');btn.disabled=false;btn.textContent='Lançar Saída';cM('mLoteSaida');await abrirDetalhesLote(loteId);
     // Atualizar lista de lotes em background
     const{data:lotesUpd}=await sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false});
     if(lotesUpd){FL_LOTES=lotesUpd;renderLotes();}
@@ -1391,6 +1410,7 @@ async function confirmarFinLote(){
       await sb.from('movimentacoes_os').insert(movs);
     }
     toast('Lote finalizado! '+osIds.length+' OS finalizadas.');
+    btn.disabled=false;btn.textContent='Confirmar Finalização';
     cM('mFinLote');
     // Atualizar lista antes de navegar
     const{data:lotesUpd2}=await sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false});
@@ -1415,7 +1435,7 @@ async function pgDet(el,id){
   if(!os){toast('OS não encontrada','er');go('producao');return}_o=os;
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
   const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
-  const canPost=isAdmin()||(os.status==='finalizada'&&podeEditar('postagem'));const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
+  const canPost=(isFl&&os.status==='finalizada')||(iF&&os.status==='em_andamento'&&os.etapa_atual==='postagem')||(iF&&os.status==='finalizada');const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
   el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
@@ -1529,7 +1549,7 @@ async function svSaidaParcial(){
     const files=getPendingFiles();
     if(files.length>0)await uploadFlashFotos(osId,files,'saida',sp.id);
     clearPending();
-    toast('Saída parcial lançada!');cM('mSaidaP');await loadFlashCtrl(osId);
+    toast('Saída parcial lançada!');btn.disabled=false;btn.textContent='Lançar Saída';cM('mSaidaP');await loadFlashCtrl(osId);
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Lançar Saída'}
 }
 async function rmSaidaParcial(spId,osId){
@@ -1569,7 +1589,7 @@ async function confirmarFinFlash(){
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
     await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).eq('id',osId);
     await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Flash finalizado — '+obs});
-    toast('Flash finalizado!');cM('mFinFlash');go('finalizados');
+    toast('Flash finalizado!');btn.disabled=false;btn.textContent='Confirmar Finalização';cM('mFinFlash');go('finalizados');
   }catch(x){toast(x.message,'er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
 }
 
@@ -1637,7 +1657,7 @@ async function confirmarPostagem(){
     }else{
       await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — Rastreio: '+cod,justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod,visivel_cliente:true});
     }
-    toast('OS postada! Rastreio: '+cod);cM('mPostagem');go('finalizados');
+    toast('OS postada! Rastreio: '+cod);btn.disabled=false;btn.textContent='Confirmar Postagem';cM('mPostagem');go('finalizados');
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Postagem'}
 }
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
