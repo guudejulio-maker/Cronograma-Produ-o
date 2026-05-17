@@ -1976,38 +1976,96 @@ async function loadPublicOS(token){
     if(error||!os){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri);margin-bottom:8px">OS não encontrada</h2><p style="color:var(--txl);font-size:14px">O link pode ter expirado ou ser inválido.<br>Solicite um novo link à Scarlat Galvânica.</p></div>';return}
     let etapas=[];
     if(os.tipo==='folheacao'){const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
-    let flashCtrl=null;
-    let flashFotosEntrada=[];
-    let flashFotosSaida=[];
+    let flashCtrl=null,flashFotosEntrada=[],flashFotosSaida=[],lote=null,loteOsList=[];
     if(os.tipo==='flash'){
-      const{data:fc}=await sb.from('flash_controle').select('cor,peso_kg,peso_saida_total').eq('os_id',os.os_id).maybeSingle();
-      flashCtrl=fc;
-      const[fe,fs]=await Promise.all([
-        sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','entrada').order('criado_em',{ascending:true}),
-        sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','saida').order('criado_em',{ascending:true})
-      ]);
-      flashFotosEntrada=fe.data||[];
-      flashFotosSaida=fs.data||[];
+      // Verificar se faz parte de um lote
+      const{data:osBase}=await sb.from('ordens_servico').select('lote_id').eq('id',os.os_id).single();
+      if(osBase?.lote_id){
+        // Buscar lote e todas as OS do lote
+        const[rl,rlo]=await Promise.all([
+          sb.from('flash_lotes').select('*').eq('id',osBase.lote_id).single(),
+          sb.from('flash_lote_os').select('os_id,peso_entrada,ordens_servico(id,numero_os,status,volume,clientes(nome))').eq('lote_id',osBase.lote_id)
+        ]);
+        lote=rl.data;
+        loteOsList=rlo.data||[];
+        // Buscar fotos de todas as OS do lote + fotos do lote
+        const osIds=loteOsList.map(lo=>lo.os_id);
+        const[fEnt,fSai,fLote,ctrls]=await Promise.all([
+          sb.from('flash_fotos').select('caminho_arquivo,criado_em,os_id').in('os_id',osIds).eq('tipo_foto','entrada').order('criado_em',{ascending:true}),
+          sb.from('flash_fotos').select('caminho_arquivo,criado_em,os_id').in('os_id',osIds).eq('tipo_foto','saida').order('criado_em',{ascending:true}),
+          sb.from('flash_lote_fotos').select('caminho_arquivo,criado_em,tipo_foto').eq('lote_id',osBase.lote_id).order('criado_em',{ascending:true}),
+          sb.from('flash_controle').select('os_id,cor,peso_kg,peso_saida_total').in('os_id',osIds)
+        ]);
+        flashFotosEntrada=[...(fEnt.data||[]),...(fLote.data||[]).filter(f=>f.tipo_foto==='entrada')];
+        flashFotosSaida=[...(fSai.data||[]),...(fLote.data||[]).filter(f=>f.tipo_foto==='saida')];
+        // ctrl consolidado do lote
+        const ctrlMap={};(ctrls.data||[]).forEach(c=>ctrlMap[c.os_id]=c);
+        const pesoEntTotal=loteOsList.reduce((s,lo)=>s+Number(ctrlMap[lo.os_id]?.peso_kg||lo.peso_entrada||0),0);
+        const pesoSaiTotal=Number(lote.peso_saida_total||0);
+        const corMap={};(ctrls.data||[]).forEach(c=>{if(c.cor)corMap[c.cor]=(corMap[c.cor]||0)+1});
+        const corPred=Object.keys(corMap).sort((a,b)=>corMap[b]-corMap[a])[0]||null;
+        flashCtrl={cor:corPred,peso_kg:pesoEntTotal,peso_saida_total:pesoSaiTotal};
+      }else{
+        // OS individual sem lote
+        const{data:fc}=await sb.from('flash_controle').select('cor,peso_kg,peso_saida_total').eq('os_id',os.os_id).maybeSingle();
+        flashCtrl=fc;
+        const[fe,fs]=await Promise.all([
+          sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','entrada').order('criado_em',{ascending:true}),
+          sb.from('flash_fotos').select('caminho_arquivo,criado_em').eq('os_id',os.os_id).eq('tipo_foto','saida').order('criado_em',{ascending:true})
+        ]);
+        flashFotosEntrada=fe.data||[];
+        flashFotosSaida=fs.data||[];
+      }
     }
-    renderPublic(os,etapas,flashCtrl,flashFotosEntrada,flashFotosSaida);
+    renderPublic(os,etapas,flashCtrl,flashFotosEntrada,flashFotosSaida,lote,loteOsList);
   }catch(e){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri)">Erro</h2><p style="color:var(--txl)">Tente novamente em instantes.</p></div>'}
 }
 
-async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida){
+async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida,lote,loteOsList){
   const app=document.getElementById('pubApp');if(!app)return;
   const isFolh=os.tipo==='folheacao';
   fotosEntrada=fotosEntrada||[];
   fotosSaida=fotosSaida||[];
+  loteOsList=loteOsList||[];
   const scl={em_andamento:'and',finalizada:'fin',postada:'pos',cancelada:'can'};
   const sic={em_andamento:'⏳',finalizada:'✓',postada:'📦',cancelada:'✕'};
-  let h=`<div class="pub-card"><div class="pub-card-title">Informações da OS</div>
+
+  // Banner do lote (quando flash agrupado)
+  let loteBanner='';
+  if(!isFolh&&lote){
+    loteBanner=`<div class="pub-card" style="border:1.5px solid #8B5CF6;background:linear-gradient(135deg,#F5F3FF 0%,#fff 100%);margin-bottom:20px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#7C3AED;font-weight:600;margin-bottom:14px">📦 ${lote.numero_lote} — OS Agrupadas</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${loteOsList.map(lo=>{
+          const isThis=lo.os_id===os.os_id;
+          const loOs=lo.ordens_servico;
+          const stLo=loOs?.status||'em_andamento';
+          return`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:${isThis?'#EDE9FE':'#FAFAF8'};border:1.5px solid ${isThis?'#8B5CF6':'#E8E4DD'}">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:${isThis?'#5B21B6':'#1B2A4A'}">${loOs?.numero_os||'—'}${isThis?' <span style="font-size:10px;font-weight:500;color:#8B5CF6">(este pedido)</span>':''}</div>
+              <div style="font-size:12px;color:#6B7280;margin-top:2px">${loOs?.clientes?.nome||'—'} · ${formatPeso(lo.peso_entrada)} KG</div>
+            </div>
+            <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:${stLo==='finalizada'?'#D1FAE5':stLo==='postada'?'#DBEAFE':'#FEF3C7'};color:${stLo==='finalizada'?'#065F46':stLo==='postada'?'#1E40AF':'#92400E'}">${PUB_SL[stLo]||stLo}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:14px;display:flex;gap:16px;flex-wrap:wrap">
+        ${flashCtrl?.cor?`<span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span>`:''}
+        <span style="font-size:13px;color:#6B7280">Peso total entrada: <strong style="color:#1B2A4A">${formatPeso(flashCtrl?.peso_kg||0)} KG</strong></span>
+        ${flashCtrl?.peso_saida_total!=null?`<span style="font-size:13px;color:#6B7280">Peso saída: <strong style="color:#059669">${formatPeso(flashCtrl.peso_saida_total)} KG</strong></span>`:''}
+      </div>
+    </div>`;
+  }
+
+  let h=`${loteBanner}<div class="pub-card"><div class="pub-card-title">Informações da OS</div>
   <div class="pub-ig">
     <div class="pub-il"><div class="lb">Número</div><div class="vl">${os.numero_os}</div></div>
     <div class="pub-il"><div class="lb">Cliente</div><div class="vl sm">${os.cliente_nome||'—'}</div></div>
     <div class="pub-il"><div class="lb">Tipo</div><div class="vl sm">${isFolh?'Folheação':'Flash'}</div></div>
     <div class="pub-il"><div class="lb">Status</div><div><span class="pub-sb ${scl[os.status]||''}">${sic[os.status]||''} ${PUB_SL[os.status]||os.status}</span></div></div>
   </div>`;
-  if(!isFolh&&flashCtrl){
+  // Peso individual (sem lote) ou já mostrou no banner
+  if(!isFolh&&flashCtrl&&!lote){
     h+=`<div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">`;
     if(flashCtrl.cor)h+=`<span class="cor-${flashCtrl.cor}">${PUB_COR[flashCtrl.cor]||flashCtrl.cor}</span>`;
     if(flashCtrl.peso_kg)h+=`<span style="font-size:13px;color:#6B7280">Entrada: <strong style="color:#1B2A4A">${formatPeso(flashCtrl.peso_kg)} KG</strong></span>`;
@@ -2022,7 +2080,7 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida){
   h+=`<div class="pub-prev"><div class="lbl">${prevLabel}</div><div class="dt">${fdLong(prevDate)}</div><div class="sub2">${prevSub}</div></div>`;
   if(codigoRastreio&&os.status==='postada'){h+=`<div style="margin-top:16px;background:#D1FAE5;border-radius:12px;padding:16px 20px;text-align:center"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#065F46;font-weight:600;margin-bottom:6px">Código de Rastreio</div><div style="font-size:20px;font-weight:700;color:#065F46;letter-spacing:2px;font-family:monospace">${codigoRastreio}</div><div style="font-size:12px;color:#059669;margin-top:4px">Utilize este código para rastrear seu pedido</div></div>`;}
   h+=`</div>`;
-  // Fotos de entrada do Flash (visível ao cliente)
+  // Fotos de entrada
   if(!isFolh&&fotosEntrada.length>0){
     h+='<div class="pub-card"><div class="pub-card-title">📦 Foto de Entrada da Mercadoria</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">';
@@ -2032,7 +2090,7 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida){
     });
     h+='</div></div>';
   }
-  // Fotos de saída do Flash (visível ao cliente)
+  // Fotos de saída
   if(!isFolh&&fotosSaida.length>0){
     h+='<div class="pub-card"><div class="pub-card-title">✅ Foto de Saída da Mercadoria</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">';
