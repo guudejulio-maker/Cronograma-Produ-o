@@ -497,7 +497,35 @@ async function uploadFlashFotos(osId,files,tipo,saidaParcialId){
 async function deleteFlashFoto(fotoId,caminho){await sb.storage.from('flash-fotos').remove([caminho]);await sb.from('flash_fotos').delete().eq('id',fotoId)}
 
 // ===== DASHBOARD =====
-async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;const[r1,r2,r3]=await Promise.all([sb.from('vw_dashboard_resumo').select('*').single(),sb.from('vw_os_por_etapa').select('*'),sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(15)]);const d=r1.data||{};document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;document.getElementById('df').textContent=d.finalizadas_hoje||0;const et=r2.data||[];document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.sort(sortByUrgency).map(o=>`<tr class="${alOrig(o)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${baOrig(o)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>'}
+async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div id="dProntas"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;
+  const[r1,r2,r3,r4]=await Promise.all([
+    sb.from('vw_dashboard_resumo').select('*').single(),
+    sb.from('vw_os_por_etapa').select('*'),
+    sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(50),
+    sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').eq('etapa_atual','postagem').order('data_prevista_conclusao')
+  ]);
+  const d=r1.data||{};
+  document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;
+  document.getElementById('df').textContent=d.finalizadas_hoje||0;
+  // Card: OS prontas para postar (folheação em postagem)
+  const prontas=r4.data||[];
+  const dProntas=document.getElementById('dProntas');
+  if(prontas.length>0){
+    dProntas.innerHTML=`<div class="card mb24" style="border:2px solid #059669;background:linear-gradient(135deg,#F0FDF4 0%,#fff 100%)">
+      <div class="fx ac jb mb16">
+        <div class="fx ac g8"><span style="font-size:20px">📦</span><h3 style="font-size:16px;font-weight:700;color:#065F46">${prontas.length} OS pronta${prontas.length>1?'s':''} para postar!</h3></div>
+        <button class="btn bsm" style="background:#059669;color:#fff" onclick="go('producao')">Ver produção</button>
+      </div>
+      <div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Prazo Original</th><th>Atraso</th><th>Ação</th></tr></thead><tbody>
+      ${prontas.map(o=>`<tr class="cp"><td onclick="location.hash='d/${o.id}'"><strong>${o.numero_os}</strong></td><td onclick="location.hash='d/${o.id}'">${o.clientes?.nome||'—'}</td><td onclick="location.hash='d/${o.id}'">${fd(o.data_prevista_conclusao_original||o.data_postagem_prevista_original)}</td><td onclick="location.hash='d/${o.id}'">${badgeAtrasoOS(o)}</td><td><button class="btn bok bsm" onclick="location.hash='d/${o.id}'">Postar →</button></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+  }else{dProntas.innerHTML='';}
+  const et=r2.data||[];
+  document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';
+  const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});
+  document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.sort(sortByUrgency).map(o=>`<tr class="${alOrig(o)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${baOrig(o)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>';
+}
 
 // ===== NOVA OS (com número automático para flash) =====
 async function pgN(el){
@@ -645,11 +673,11 @@ function fOS(){
   document.getElementById('tP').innerHTML=r.length?r.map(o=>{
     const orig=o.data_prevista_conclusao_original||o.data_postagem_prevista_original;
     const sel=_pSel.has(o.id);
-    return`<tr data-os-id="${o.id}" style="${sel?'background:rgba(212,168,83,.12)':''}">
+    return`<tr data-os-id="${o.id}" style="${sel?'background:rgba(212,168,83,.12)':o.etapa_atual==='postagem'?'background:rgba(5,150,105,.06)':''}">
       <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px;width:36px">
         <input type="checkbox" class="pchk" data-id="${o.id}" ${sel?'checked':''} style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer" onchange="togglePSel(${o.id},this.checked)">
       </td>
-      <td class="cp" onclick="location.hash='d/${o.id}'"><strong>${o.numero_os}</strong></td>
+      <td class="cp" onclick="location.hash='d/${o.id}'"><strong>${o.numero_os}</strong>${o.etapa_atual==='postagem'?'<span style="display:inline-block;margin-left:6px;background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;vertical-align:middle">📦 POSTAR</span>':''}</td>
       <td class="cp trn" style="max-width:140px" onclick="location.hash='d/${o.id}'">${o.clientes?.nome||'—'}</td>
       <td class="cp" onclick="location.hash='d/${o.id}'"><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td>
       <td class="cp" onclick="location.hash='d/${o.id}'"><span class="be">${le(o.etapa_atual)||'—'}</span></td>
@@ -1344,6 +1372,11 @@ async function confirmarFinLote(){
   const loteId=parseInt(document.getElementById('fnLoteId').value);
   const obs=document.getElementById('fnLoteObs').value.trim();
   if(!obs){toast('Informe a observação de finalização','er');return}
+  // Verificar se o lote tem foto de saída
+  const{data:fotosLote}=await sb.from('flash_lote_fotos').select('id').eq('lote_id',loteId).eq('tipo_foto','saida').limit(1);
+  if(!fotosLote||fotosLote.length===0){
+    if(!confirm('⚠️ Nenhuma foto de saída registrada neste lote!\n\nTem certeza que deseja finalizar sem foto de saída?'))return;
+  }
   const btn=document.getElementById('btnFinLote');btn.disabled=true;btn.textContent='Finalizando...';
   try{
     // Atualizar lote
@@ -1526,6 +1559,11 @@ async function confirmarFinFlash(){
   // Revalidar peso no servidor
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   if(!ctrl||ctrl.peso_saida_total<ctrl.peso_kg){toast('Peso de saída insuficiente para finalizar','er');return}
+  // Verificar se tem foto de saída
+  const{data:fotosSaida}=await sb.from('flash_fotos').select('id').eq('os_id',osId).eq('tipo_foto','saida').limit(1);
+  if(!fotosSaida||fotosSaida.length===0){
+    if(!confirm('⚠️ Nenhuma foto de saída registrada!\n\nTem certeza que deseja finalizar sem foto de saída?'))return;
+  }
   const btn=document.getElementById('btnFnCf');btn.disabled=true;btn.textContent='Finalizando...';
   try{
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
