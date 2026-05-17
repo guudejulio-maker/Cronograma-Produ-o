@@ -1437,8 +1437,46 @@ async function pgDet(el,id){
   if(!os){toast('OS não encontrada','er');go('producao');return}_o=os;
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
   const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
-  const canPost=(isFl&&os.status==='finalizada')||(iF&&os.status==='em_andamento'&&os.etapa_atual==='postagem')||(iF&&os.status==='finalizada');const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  const canPost=(isFl&&os.status==='finalizada')||(iF&&os.status==='em_andamento'&&os.etapa_atual==='postagem')||(iF&&os.status==='finalizada');
+  const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
+
+  // Se flash em lote — buscar dados do lote para exibir banner
+  let lote=null,loteOsList=[];
+  if(isFl&&os.lote_id){
+    const[rl,rlo]=await Promise.all([
+      sb.from('flash_lotes').select('*').eq('id',os.lote_id).single(),
+      sb.from('flash_lote_os').select('os_id,peso_entrada,ordens_servico(id,numero_os,status,clientes(nome))').eq('lote_id',os.lote_id)
+    ]);
+    lote=rl.data;
+    loteOsList=rlo.data||[];
+  }
+
+  // Banner do lote (se existir)
+  const loteBanner=lote?`
+    <div class="card mb24" style="border:2px solid #8B5CF6;background:linear-gradient(135deg,#F5F3FF 0%,#fff 100%)">
+      <div class="fx ac jb mb12">
+        <div class="fx ac g8">
+          <span style="font-size:18px">📦</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#5B21B6">${lote.numero_lote}</div>
+            <div style="font-size:12px;color:#6B7280">Este flash faz parte de um lote — ${loteOsList.length} OS agrupadas</div>
+          </div>
+        </div>
+        <span class="bdg" style="background:#EDE9FE;color:#5B21B6">${lote.status==='em_andamento'?'Em andamento':lote.status==='finalizado'?'Finalizado':'Postado'}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${loteOsList.map(lo=>{
+          const isThis=lo.os_id===os.id;
+          return`<div onclick="${isThis?'':` location.hash='d/${lo.os_id}'`}" style="padding:8px 14px;border-radius:10px;border:2px solid ${isThis?'#8B5CF6':'#E5E1DA'};background:${isThis?'#EDE9FE':'#fff'};cursor:${isThis?'default':'pointer'};transition:all .2s">
+            <div style="font-size:13px;font-weight:700;color:${isThis?'#5B21B6':'#1B2A4A'}">${lo.ordens_servico?.numero_os||'—'} ${isThis?'<span style="font-size:10px;color:#8B5CF6">(esta)</span>':''}</div>
+            <div style="font-size:11px;color:#6B7280;margin-top:2px">${lo.ordens_servico?.clientes?.nome||'—'} · ${formatPeso(lo.peso_entrada)} KG</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`:''
+
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  ${loteBanner}
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Cliente</div><div style="font-size:16px;font-weight:500">${os.clientes?.nome||'—'}</div></div>
@@ -1456,15 +1494,81 @@ async function pgDet(el,id){
   ${iF?`<div class="card mb24"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">Progresso</h3><div id="cataAction"></div></div><div class="ep" id="oEP"></div><div class="tw mt16"><table><thead><tr><th>Etapa</th><th>Status</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Entr.Real</th><th>Saída Real</th><th>Atraso</th><th>Ação</th></tr></thead><tbody id="oET"></tbody></table></div></div>`:''}
   ${iF?'<div class="card mb24" id="obsCA" style="display:none"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Observações da Conferência</h3><div id="oCF"></div><div id="oCL"></div></div>':''}
   <div class="card"><div class="tabs"><button class="tb on" onclick="stb('mov',this)">Movimentações</button><button class="tb" onclick="stb('prz',this)">Alterações Prazo</button></div><div class="tp on" id="tpMov"><div id="lM"><div class="spin"></div></div></div><div class="tp" id="tpPrz"><div id="lP"><div class="spin"></div></div></div></div>`;
-  if(isFl)await loadFlashCtrl(id);
+  if(isFl)await loadFlashCtrl(id,lote,loteOsList);
   if(iF){await ldEt(id);await ldOC(id);renderCataAction(id)}
   await Promise.all([ldMv(id),ldHP(id)]);
 }
 
 // ===== CONTROLE DO FLASH (com saídas parciais e finalização com peso) =====
-async function loadFlashCtrl(osId){
+async function loadFlashCtrl(osId,lote,loteOsList){
   const cont=document.getElementById('flashCtrlContent');
   try{
+    // Se tem lote — mostrar controle do lote completo
+    if(lote){
+      const loteId=lote.id;
+      const osIds=(loteOsList||[]).map(lo=>lo.os_id);
+      const[r1,r2,r3,r4]=await Promise.all([
+        sb.from('flash_controle').select('*').in('os_id',osIds),
+        sb.from('flash_fotos').select('*').in('os_id',osIds).order('criado_em'),
+        sb.from('flash_lote_saidas').select('*,perfis(nome)').eq('lote_id',loteId).order('criado_em',{ascending:false}),
+        sb.from('flash_lote_fotos').select('*').eq('lote_id',loteId).order('criado_em')
+      ]);
+      const ctrls=r1.data||[];
+      const todasFotos=r2.data||[];
+      const saidas=r3.data||[];
+      const loteFotos=r4.data||[];
+
+      // Fotos de entrada: individuais de cada OS + fotos de lote entrada
+      const fEnt=[...todasFotos.filter(f=>f.tipo_foto==='entrada'),...loteFotos.filter(f=>f.tipo_foto==='entrada')];
+      const fSai=[...todasFotos.filter(f=>f.tipo_foto==='saida'),...loteFotos.filter(f=>f.tipo_foto==='saida')];
+
+      const pesoEntrada=Number(lote.peso_entrada_total||0);
+      const pesoSaida=Number(lote.peso_saida_total||0);
+      const completo=pesoEntrada>0&&pesoSaida>=pesoEntrada;
+      const pct=pesoEntrada>0?Math.min(100,(pesoSaida/pesoEntrada)*100):0;
+      const emAndamento=lote.status==='em_andamento';
+      const canAct=isAdmin()||emAndamento;
+      const canFinalize=canAct&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
+      const canDelete=isAdmin();
+
+      // Cor predominante do lote
+      const corMap={};ctrls.forEach(c=>{if(c.cor)corMap[c.cor]=(corMap[c.cor]||0)+1});
+      const corPred=Object.keys(corMap).sort((a,b)=>corMap[b]-corMap[a])[0]||null;
+
+      cont.innerHTML=`
+      <div style="background:#F5F3FF;border-radius:10px;padding:12px 16px;margin-bottom:16px;border:1px solid #DDD6FE">
+        <p class="txs" style="color:#6B21A8;font-weight:600">⚠️ Este é um controle de lote. Saídas e fotos lançadas aqui valem para todas as ${osIds.length} OS do ${lote.numero_lote}.</p>
+      </div>
+      <div class="fr mb16">
+        <div><div class="txs tlt" style="text-transform:uppercase">Cor</div><div class="mt8"><span class="bdg b-${corPred||''}" style="font-size:14px">${COR_LBL[corPred]||'—'}</span></div></div>
+        <div><div class="txs tlt" style="text-transform:uppercase">Peso Total Entrada</div><div class="mt8" style="font-size:18px;font-weight:600">${formatPeso(pesoEntrada)} KG</div></div>
+      </div>
+      <div class="peso-box">
+        <div class="fx ac jb"><strong>Peso de Saída Acumulado</strong><span style="font-weight:600;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(pesoSaida)} / ${formatPeso(pesoEntrada)} KG</span></div>
+        <div class="peso-bar"><div class="peso-bar-fill ${completo?'':'incomplete'}" style="width:${pct}%"></div></div>
+        <p class="txs tlt">${completo?'✓ Peso completo — pode finalizar o lote':`Faltam ${formatPeso(Math.max(0,pesoEntrada-pesoSaida))} KG`}</p>
+      </div>
+      ${canAct?`<div class="fx g8 mb16 fw">
+        <button class="btn bok bsm" onclick="abrirLoteSaida(${loteId})">+ Lançar Saída do Lote</button>
+        ${canFinalize?`<button class="btn ba bsm" onclick="abrirFinLote(${loteId})">Finalizar Lote</button>`:''}
+      </div>`:''}
+      ${lote.obs_finalizacao?`<div class="peso-box" style="border-left:4px solid var(--ok)"><strong>Obs. Finalização:</strong><p class="mt8">${lote.obs_finalizacao}</p></div>`:''}
+      <div class="mb16">
+        <div class="fx ac jb"><h4 style="font-size:14px;font-weight:600">Fotos de Entrada (${fEnt.length})</h4></div>
+        <div class="foto-grid">${fEnt.map(f=>`<div class="foto-thumb"><img src="${STORAGE_URL}${f.caminho_arquivo}" onclick="openLightbox('${STORAGE_URL}${f.caminho_arquivo}')"></div>`).join('')}${fEnt.length===0?'<p class="tlt ts">Nenhuma foto</p>':''}</div>
+      </div>
+      <div class="mb16">
+        <div class="fx ac jb mb8"><h4 style="font-size:14px;font-weight:600">Fotos de Saída (${fSai.length})</h4>${canAct?`<label class="btn bo bsm cp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar<input type="file" accept="image/*" multiple style="display:none" onchange="addFotoLote(${loteId},'saida',this)"></label>`:''}</div>
+        <div class="foto-grid">${fSai.map(f=>`<div class="foto-thumb"><img src="${STORAGE_URL}${f.caminho_arquivo}" onclick="openLightbox('${STORAGE_URL}${f.caminho_arquivo}')"></div>`).join('')}${fSai.length===0?'<p class="tlt ts">Nenhuma. Lance saídas para adicionar.</p>':''}</div>
+      </div>
+      <div>
+        <h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Saídas do Lote (${saidas.length})</h4>
+        ${saidas.length?saidas.map(s=>`<div class="sp-item"><div class="fx ac jb"><strong>${formatPeso(s.peso_kg)} KG</strong><span class="txs tlt">${fh(s.criado_em)} ${s.perfis?.nome?'— '+s.perfis.nome:''}</span></div>${s.observacao?`<div class="ts mt8">${s.observacao}</div>`:''}</div>`).join(''):'<p class="tlt ts">Nenhuma saída registrada.</p>'}
+      </div>`;
+      return;
+    }
+
+    // OS individual (sem lote) — comportamento original
     const[r1,r2,r3]=await Promise.all([
       sb.from('flash_controle').select('*').eq('os_id',osId).maybeSingle(),
       sb.from('flash_fotos').select('*').eq('os_id',osId).order('criado_em'),
@@ -1478,8 +1582,8 @@ async function loadFlashCtrl(osId){
     const completo=pesoEntrada>0&&pesoSaida>=pesoEntrada;
     const pct=pesoEntrada>0?Math.min(100,(pesoSaida/pesoEntrada)*100):0;
     const emAndamento=_o.status==='em_andamento';
-    const canManage=isAdmin()||emAndamento; // ADM sempre; demais só em andamento
-    const canDelete=isAdmin(); // exclusão só ADM
+    const canManage=isAdmin()||emAndamento;
+    const canDelete=isAdmin();
     const canAct=isAdmin()||emAndamento;const canFinalize=canAct&&pesoSaida>=pesoEntrada&&pesoEntrada>0;
 
     cont.innerHTML=`
@@ -1513,6 +1617,21 @@ async function loadFlashCtrl(osId){
     console.error('Erro ao carregar controle do flash',err);
     cont.innerHTML='<div class="empty"><h3>Erro ao carregar o Flash</h3><p>Tente atualizar a página.</p></div>';
   }
+}
+
+// Adicionar foto diretamente no lote
+async function addFotoLote(loteId,tipo,input){
+  const files=Array.from(input.files).filter(f=>f.size<=10*1024*1024&&f.type.startsWith('image/'));
+  if(files.length===0){toast('Nenhuma imagem válida','er');return}
+  toast('Enviando '+files.length+' foto(s)...');
+  for(const f of files){
+    const ext=f.name.split('.').pop()||'jpg';
+    const path=`lotes/${loteId}/${tipo}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const{error:eUp}=await sb.storage.from('flash-fotos').upload(path,f,{contentType:f.type});
+    if(!eUp)await sb.from('flash_lote_fotos').insert({lote_id:loteId,tipo_foto:tipo,caminho_arquivo:path,nome_arquivo:f.name,tamanho_bytes:f.size,usuario_id:U?.id});
+  }
+  toast('Fotos adicionadas!');input.value='';
+  await loadFlashCtrl(_o.id,{id:loteId,..._loteAtual},(await sb.from('flash_lote_os').select('os_id,peso_entrada,ordens_servico(id,numero_os,status,clientes(nome))').eq('lote_id',loteId)).data||[]);
 }
 
 async function addMoreFlashFotos(osId,tipo,input){
