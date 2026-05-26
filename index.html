@@ -1126,11 +1126,39 @@ async function pgF(el){
   const selAno=document.getElementById('flAno');anos.forEach(a=>selAno.innerHTML+=`<option value="${a}">${a}</option>`);
   const an=FL.filter(f=>f.status==='em_andamento'&&!f.lote_id);
   const anLotes=FL_LOTES.filter(l=>l.status==='em_andamento');
+  // Contar vencidos: OS individuais + lotes cujo prazo original venceu
+  const vencIndiv=an.filter(f=>alOrig(f)==='vencido');
+  // Para lotes, verificar pela OS mais antiga do lote
+  const vencLotes=anLotes.filter(l=>{
+    const osDoLote=FL.filter(o=>o.lote_id===l.id);
+    return osDoLote.some(o=>alOrig(o)==='vencido');
+  });
+  const totalVenc=vencIndiv.length+vencLotes.length;
+  const noPrazoIndiv=an.filter(f=>alOrig(f)!=='vencido'&&alOrig(f)!=='vence_hoje'&&alOrig(f)!=='vence_amanha');
+  const noPrazoLotes=anLotes.filter(l=>{
+    const osDoLote=FL.filter(o=>o.lote_id===l.id);
+    return osDoLote.length===0||osDoLote.every(o=>alOrig(o)==='no_prazo');
+  });
+  const totalNoPrazo=noPrazoIndiv.length+noPrazoLotes.length;
   document.getElementById('fS').innerHTML=`
-    <div class="st st4"><div class="sti">&#9889;</div><div class="stv">${an.length}</div><div class="stl">Flash Indiv.</div></div>
-    <div class="st st4"><div class="sti">&#128230;</div><div class="stv">${anLotes.length}</div><div class="stl">Lotes ativos</div></div>
-    <div class="st st1"><div class="sti">&#10003;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)!=='vencido').length}</div><div class="stl">No prazo</div></div>
-    <div class="st st3"><div class="sti">&#10007;</div><div class="stv">${an.filter(f=>al(f.data_prevista_conclusao)==='vencido').length}</div><div class="stl">Vencidos</div></div>`;
+    <div class="st st4" style="cursor:pointer" onclick="switchFlTab('os',document.getElementById('tabFlOS'));document.getElementById('flS').value='em_andamento';fFL()" title="Ver OS individuais">
+      <div class="sti">&#9889;</div><div class="stv">${an.length}</div><div class="stl">Flash Indiv.</div>
+      <div style="font-size:10px;color:var(--txm);margin-top:4px">▶ clique para ver</div>
+    </div>
+    <div class="st st4" style="cursor:pointer" onclick="switchFlTab('lotes',document.getElementById('tabFlLotes'))" title="Ver lotes ativos">
+      <div class="sti">&#128230;</div><div class="stv">${anLotes.length}</div><div class="stl">Lotes ativos</div>
+      <div style="font-size:10px;color:var(--txm);margin-top:4px">▶ clique para ver</div>
+    </div>
+    <div class="st st1" style="cursor:pointer" onclick="switchFlTab('os',document.getElementById('tabFlOS'));document.getElementById('flS').value='em_andamento';fFL()" title="No prazo">
+      <div class="sti">&#10003;</div><div class="stv">${totalNoPrazo}</div><div class="stl">No prazo</div>
+    </div>
+    ${totalVenc>0
+      ?`<div class="st st3" style="cursor:pointer;animation:stPulse 2s infinite" onclick="switchFlTab('os',document.getElementById('tabFlOS'));document.getElementById('flS').value='vencido_prazo';fFL()" title="Ver vencidos">
+          <div class="sti">&#10007;</div><div class="stv">${totalVenc}</div><div class="stl">Vencidos</div>
+          <div style="font-size:10px;color:var(--er);margin-top:4px;font-weight:600">▶ ver vencidos</div>
+        </div>`
+      :`<div class="st st3"><div class="sti">&#10007;</div><div class="stv">0</div><div class="stl">Vencidos</div></div>`
+    }`;
   fFL();renderLotes();
 }
 function switchFlTab(tab,btn){
@@ -1147,7 +1175,7 @@ function fFL(){
   const fcs=window._flFcs||{};
   let r=FL.filter(o=>{
     if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
-    if(s==='vencido_prazo'){if(al(o.data_prevista_conclusao)!=='vencido')return!1;}
+    if(s==='vencido_prazo'){if(alOrig(o)!=='vencido')return!1;}
     else if(s&&o.status!==s)return!1;
     if(ano&&!o.data_entrada?.startsWith(ano))return!1;
     if(mes&&o.data_entrada){const m=parseInt(o.data_entrada.substring(5,7));if(m!==parseInt(mes))return!1}
@@ -1162,9 +1190,12 @@ function fFL(){
     const pesoSai=ctrl?.peso_saida_total!=null?formatPeso(ctrl.peso_saida_total)+' KG':'0 KG';
     const loteBdg=o.lote_id?`<span class="bdg" style="background:#EDE9FE;color:#5B21B6;font-size:11px">&#128230; ${FL_LOTES.find(l=>l.id===o.lote_id)?.numero_lote||'Lote'}</span>`:'—';
     const sel=_flSel.has(o.id);
+    const urgAlert=alOrig(o);
+    const rowBg=sel?'background:rgba(212,168,83,.12)':urgAlert==='vencido'?'background:rgba(220,38,38,.04)':urgAlert==='vence_hoje'?'background:rgba(234,88,12,.04)':'';
+    const urgBorder=urgAlert==='vencido'?'border-left:3px solid var(--er)':urgAlert==='vence_hoje'?'border-left:3px solid var(--or)':'';
     const stLbl=o.lote_id?'Em Lote':ls(o.status);
     const stStyle=o.lote_id?'background:#EDE9FE;color:#5B21B6':(o.status==='em_andamento'?'background:var(--okb);color:var(--okt)':'background:var(--orb);color:var(--ort)');
-    return`<tr data-os-id="${o.id}" style="${sel?'background:rgba(212,168,83,.12)':''}">
+    return`<tr data-os-id="${o.id}" style="${rowBg};${urgBorder}">`+`
       <td onclick="event.stopPropagation()" style="text-align:center;padding:0 8px;width:36px">
         <input type="checkbox" class="flchk" data-id="${o.id}" ${sel?'checked':''} style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer" onchange="toggleFlSel(${o.id},this.checked)">
       </td>
@@ -1176,7 +1207,7 @@ function fFL(){
       <td class="cp" onclick="location.hash='d/${o.id}'">${loteBdg}</td>
       <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_entrada)}</td>
       <td class="cp" onclick="location.hash='d/${o.id}'">${fd(o.data_prevista_conclusao)}</td>
-      <td class="cp" onclick="location.hash='d/${o.id}'">${ba(o.data_prevista_conclusao)}</td>
+      <td class="cp" onclick="location.hash='d/${o.id}'">${baOrig(o)}</td>
       <td class="cp" onclick="location.hash='d/${o.id}'"><span class="bdg" style="${stStyle}">${stLbl}</span></td>
     </tr>`;
   }).join(''):'<tr><td colspan="11" class="tc tlt" style="padding:40px">Nenhum flash</td></tr>';
@@ -1308,19 +1339,24 @@ function renderLotes(){
     const pSaida=Number(l.peso_saida_total||0);
     const completo=pTotal>0&&pSaida>=pTotal;
     const pct=pTotal>0?Math.min(100,(pSaida/pTotal)*100):0;
-    // cliente a partir das OS vinculadas
     const clienteNome=l.flash_lote_os?.[0]?.ordens_servico?.clientes?.nome||'—';
-    // cor badge
     const corHtml=l.cor?`<span class="bdg b-${l.cor}" style="font-size:11px">${COR_LBL[l.cor]||l.cor}</span>`:'—';
-    // progresso de peso inline
     const pesoHtml=`<div style="min-width:110px">
       <div style="font-weight:600;font-size:13px;color:${completo?'var(--ok)':'var(--wn)'}">${formatPeso(pSaida)} / ${formatPeso(pTotal)} KG</div>
       <div style="height:4px;background:#E5E1DA;border-radius:3px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${completo?'var(--ok)':'var(--wn)'};border-radius:3px;transition:width .3s"></div></div>
     </div>`;
-    // fotos count
     const fotosCount=l.flash_lote_fotos?.length||0;
     const fotosHtml=fotosCount>0?`<span style="font-size:11px;color:var(--inf)">📷 ${fotosCount}</span>`:'';
-    // ações
+    // Alerta de prazo baseado nas OS do lote
+    let urgAlert='no_prazo';
+    if(l.status==='em_andamento'){
+      const osDoLote=FL.filter(o=>o.lote_id===l.id);
+      if(osDoLote.some(o=>alOrig(o)==='vencido'))urgAlert='vencido';
+      else if(osDoLote.some(o=>alOrig(o)==='vence_hoje'))urgAlert='vence_hoje';
+      else if(osDoLote.some(o=>alOrig(o)==='vence_amanha'))urgAlert='vence_amanha';
+    }
+    const rowBg=urgAlert==='vencido'?'background:rgba(220,38,38,.04)':urgAlert==='vence_hoje'?'background:rgba(234,88,12,.04)':completo&&l.status==='em_andamento'?'background:rgba(5,150,105,.04)':'';
+    const urgBorder=urgAlert==='vencido'?'border-left:3px solid var(--er)':urgAlert==='vence_hoje'?'border-left:3px solid var(--or)':urgAlert==='vence_amanha'?'border-left:3px solid var(--wn)':'';
     let acoesHtml=`<button class="btn ba bsm" onclick="abrirDetalhesLote(${l.id})">Ver Detalhes</button>`;
     if(l.status==='em_andamento'){
       acoesHtml+=` <button class="btn bok bsm" onclick="abrirLoteSaidaRapido(${l.id})">+ Saída</button>`;
@@ -1328,15 +1364,16 @@ function renderLotes(){
         acoesHtml+=` <button class="btn ba bsm" style="background:var(--acc);font-weight:700" onclick="abrirFinLote(${l.id})">✓ Finalizar</button>`;
       }
     }
-    return`<tr style="${completo&&l.status==='em_andamento'?'background:rgba(5,150,105,.04)':''}">
+    const prazoAlert=urgAlert!=='no_prazo'&&l.status==='em_andamento'?`<br>${ba(FL.filter(o=>o.lote_id===l.id)[0]?.data_prevista_conclusao||'')}`:''
+    return`<tr style="${rowBg};${urgBorder}">
       <td><strong style="color:var(--acc)">${l.numero_lote}</strong>${fotosHtml?'<br>'+fotosHtml:''}</td>
       <td style="font-weight:600">${osCount}</td>
       <td style="font-size:13px">${clienteNome}</td>
       <td>${corHtml}</td>
       <td style="font-weight:600">${formatPeso(pTotal)} KG</td>
       <td>${pesoHtml}</td>
-      <td style="font-size:12px;color:var(--txl)">${fd(l.criado_em?.substring(0,10))}</td>
-      <td><span class="bdg ${stBdg}">${stLabel}</span>${completo&&l.status==='em_andamento'?'<br><span style="font-size:10px;color:var(--ok);font-weight:600">Pronto p/ finalizar</span>':''}</td>
+      <td style="font-size:12px;color:var(--txl)">${fd(l.criado_em?.substring(0,10))}${prazoAlert}</td>
+      <td><span class="bdg ${stBdg}">${stLabel}</span>${completo&&l.status==='em_andamento'?'<br><span style="font-size:10px;color:var(--ok);font-weight:600">Pronto p/ finalizar</span>':''}${urgAlert==='vencido'?'<br><span style="font-size:10px;color:var(--er);font-weight:600">⚠ Vencido</span>':''}</td>
       <td style="white-space:nowrap">${acoesHtml}</td>
     </tr>`;
   }).join(''):'<tr><td colspan="9" class="tc tlt" style="padding:40px">Nenhum lote criado</td></tr>';
