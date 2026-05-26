@@ -241,7 +241,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 </div>
 <div class="fg mt16"><label>Motivo da Alteração *</label><textarea id="adMotivo" class="fc" placeholder="Ex: Cliente solicitou renegociação de prazo, autorizado por Gustavo em 26/05..."></textarea></div>
 <div class="peso-box mt8" style="border-left:4px solid var(--wn);background:#FFFBEB">
-  <p class="ts" style="color:#92400E">⚠️ <strong>Para o cliente:</strong> a nova data será exibida como prazo atualizado.<br><strong>Internamente:</strong> se já venceu o prazo original, continuará marcado como vencido com alerta.</p>
+  <p class="ts" style="color:#92400E">⚠️ O novo prazo calculado substituirá o prazo atual para <strong>todos</strong> — cliente e equipe interna. O histórico completo da alteração fica registrado no sistema.</p>
 </div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mAltData')">Cancelar</button><button class="btn ba" onclick="confirmarAltData()" id="btnAltData">Confirmar Alteração</button></div></div></div>
 
@@ -2187,12 +2187,14 @@ function abrirAltData(osId){
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const prazoOrigDt=prazoOrig?new Date(prazoOrig+'T00:00:00'):null;
   const vencido=prazoOrigDt&&prazoOrigDt<hoje;
-  document.getElementById('adResumo').innerHTML=`<div class="peso-box" ${vencido?'style="border-left:4px solid var(--er)"':''}>
+  document.getElementById('adResumo').innerHTML=`<div class="peso-box" ${vencido?'style="border-left:4px solid var(--wn)"':''}>
     <div class="fx ac jb mb8"><strong>Entrada atual</strong><span>${fd(_o?.data_entrada)}</span></div>
-    <div class="fx ac jb mb8"><strong>Prazo original</strong><span class="prz-orig">${fd(prazoOrig)}</span></div>
-    <div class="fx ac jb"><strong>Previsão atual</strong><span>${fd(_o?.data_prevista_conclusao)} ${vencido?'<span class="bdg ber2">⚠ Vencido internamente</span>':''}</span></div>
-    ${vencido?`<p class="ts mt8" style="color:var(--er)">⚠️ Esta OS já ultrapassou o prazo original. O sistema manterá o alerta interno de vencido, mas o cliente verá o novo prazo.</p>`:''}
+    <div class="fx ac jb mb8"><strong>Prazo atual</strong><span>${fd(prazoOrig)} ${vencido?'<span class="bdg ber2">Vencido</span>':''}</span></div>
+    ${vencido?`<p class="ts mt8" style="color:var(--wn)">Após alterar, o novo prazo valerá tanto para o cliente quanto internamente.</p>`:''}
   </div>`;
+  // Atualizar aviso no rodapé do modal
+  const avisoEl=document.querySelector('#mAltData .peso-box:last-of-type p');
+  if(avisoEl)avisoEl.innerHTML='⚠️ <strong>Para o cliente e internamente:</strong> o novo prazo calculado substituirá o prazo atual. O histórico de alteração fica registrado no sistema.';
   const btn=document.getElementById('btnAltData');if(btn){btn.disabled=false;btn.textContent='Confirmar Alteração'}
   calcPreviewPrazo();
   oM('mAltData');
@@ -2231,10 +2233,12 @@ async function confirmarAltData(){
     const novoPrazoStr=novoPrazo.toISOString().split('T')[0];
     const dataEntradaAnt=_o?.data_entrada;
     const prazoAnt=_o?.data_prevista_conclusao;
-    // Atualizar OS: nova data entrada e novo prazo previsto (não muda prazo original)
+    // Atualizar OS: nova data entrada, novo prazo previsto E original (prazo renegociado vira novo base)
     const{error}=await sb.from('ordens_servico').update({
       data_entrada:novaData,
-      data_prevista_conclusao:novoPrazoStr
+      data_prevista_conclusao:novoPrazoStr,
+      data_prevista_conclusao_original:novoPrazoStr,
+      data_postagem_prevista_original:novoPrazoStr
     }).eq('id',osId);
     if(error)throw error;
     // Registrar no histórico com detalhes completos
@@ -2593,3 +2597,4 @@ init();
 </script>
 </body>
 </html>
+
