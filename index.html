@@ -228,6 +228,22 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="fg mt16"><label>Observação de Finalização *</label><textarea id="fnLoteObs" class="fc" placeholder="Observação final..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mFinLote')">Cancelar</button><button class="btn bok" onclick="confirmarFinLote()" id="btnFinLote">Confirmar Finalização</button></div></div></div>
 
+<!-- Modal Alterar Data de Entrega (Flash) -->
+<div class="modal" id="mAltData"><div class="mc" style="max-width:520px"><div class="mh"><h3>Alterar Data de Entrega</h3><button class="mx" onclick="cM('mAltData')">&times;</button></div><div class="mb">
+<input type="hidden" id="adOsId">
+<div id="adResumo"></div>
+<div class="fg mt16"><label>Nova Data de Entrada *</label><input type="date" id="adNovaData" class="fc" oninput="calcPreviewPrazo()"></div>
+<div class="peso-box mt8" id="adPrazoPreview" style="display:none">
+  <div class="fx ac jb"><strong>Entrada:</strong><span id="adPrevEnt">—</span></div>
+  <div class="fx ac jb mt8"><strong>Novo Prazo (7 dias):</strong><span id="adPrevPrazo" style="font-weight:700;color:var(--ok)">—</span></div>
+  <p class="txs tlt mt8" id="adPrevObs"></p>
+</div>
+<div class="fg mt16"><label>Motivo da Alteração *</label><textarea id="adMotivo" class="fc" placeholder="Ex: Cliente solicitou renegociação de prazo, autorizado por Gustavo em 26/05..."></textarea></div>
+<div class="peso-box mt8" style="border-left:4px solid var(--wn);background:#FFFBEB">
+  <p class="ts" style="color:#92400E">⚠️ <strong>Para o cliente:</strong> a nova data será exibida como prazo atualizado.<br><strong>Internamente:</strong> se já venceu o prazo original, continuará marcado como vencido com alerta.</p>
+</div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mAltData')">Cancelar</button><button class="btn ba" onclick="confirmarAltData()" id="btnAltData">Confirmar Alteração</button></div></div></div>
+
 <!-- Modal Postagem Folheação -->
 <div class="modal" id="mPostagem"><div class="mc" style="max-width:480px"><div class="mh"><h3>Postar OS</h3><button class="mx" onclick="cM('mPostagem')">&times;</button></div><div class="mb">
 <input type="hidden" id="poOsId">
@@ -1061,7 +1077,7 @@ async function bulkFinalizar(){
     const movs=ids.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalizacao em massa - '+obs}));
     await sb.from('movimentacoes_os').insert(movs);
     await sb.from('flash_controle').update({obs_finalizacao:obs}).in('os_id',ids);
-    toast(`${ids.length} OS finalizadas!`);limparSelFlash();go('finalizados');
+    toast(`${ids.length} OS finalizadas!`);limparSelFlash();await pgF(document.getElementById('pg'));
   }catch(x){toast(x.message||'Erro','er')}
 }
 // bulkPostar removido do Flash — Flash nao usa status Postado
@@ -1414,10 +1430,9 @@ async function confirmarFinLote(){
     toast('Lote finalizado! '+osIds.length+' OS finalizadas.');
     btn.disabled=false;btn.textContent='Confirmar Finalização';
     cM('mFinLote');
-    // Atualizar lista antes de navegar
-    const{data:lotesUpd2}=await sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome))),flash_lote_fotos(id,tipo_foto,caminho_arquivo)').order('criado_em',{ascending:false});
-    if(lotesUpd2){FL_LOTES=lotesUpd2;}
-    go('finalizados');
+    // Recarregar página flash mostrando aba de lotes
+    await pgF(document.getElementById('pg'));
+    switchFlTab('lotes',document.getElementById('tabFlLotes'));
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
 }
 async function marcarLotePostado(loteId){
@@ -1475,7 +1490,7 @@ async function pgDet(el,id){
       </div>
     </div>`:''
 
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}${isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn bo bsm" onclick="abrirAltData(${os.id})">📅 Alterar Data</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   ${loteBanner}
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
@@ -1487,6 +1502,7 @@ async function pgDet(el,id){
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Prazo Original</div><div class="prz-orig">${fd(prazoOrig)}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Previsão Atual</div><div>${fd(os.data_prevista_conclusao)} ${ba(os.data_prevista_conclusao)}</div></div>
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Atraso vs Original</div><div>${badgeAtrasoOS(os)}</div></div>
+  ${isFl&&os.status==='em_andamento'&&prazoOrig&&al(prazoOrig)==='vencido'?`<div style="grid-column:1/-1"><div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px"><span style="font-size:18px">🔴</span><div><strong style="color:#991B1B">Atenção — Prazo Original Vencido</strong><p class="ts" style="color:#DC2626;margin-top:2px">Esta OS ultrapassou o prazo original (${fd(prazoOrig)}). Use "Alterar Data" para registrar novo prazo com justificativa.</p></div></div></div>`:''}
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Status</div><div><span class="bdg ${os.status==='em_andamento'?'bok2':os.status==='finalizada'?'bor':'ber2'}">${ls(os.status)}</span></div></div>
   ${os.observacoes?`<div style="grid-column:1/-1"><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Obs</div><div class="mt8">${os.observacoes}</div></div>`:''}
   </div></div>
@@ -1599,6 +1615,7 @@ async function loadFlashCtrl(osId,lote,loteOsList){
     ${canAct?`<div class="fx g8 mb16 fw">
       <button class="btn bok bsm" onclick="abrirSaidaParcial(${osId})">+ Lançar Saída Parcial</button>
       ${canFinalize?`<button class="btn ba bsm" onclick="abrirFinFlash(${osId})">Finalizar Flash</button>`:''}
+      ${isAdmin()||emAndamento?`<button class="btn bo bsm" onclick="abrirCataFlash(${osId})">${_o?.tem_cataforetico?'🔵 Remover Cataf.':'🔵 Adicionar Cataf.'}</button>`:''}
     </div>`:''}
     ${ctrl?.obs_finalizacao?`<div class="peso-box" style="border-left:4px solid var(--ok)"><strong>Obs. Finalização:</strong><p class="mt8">${ctrl.obs_finalizacao}</p></div>`:''}
     <div class="mb16">
@@ -1685,22 +1702,64 @@ async function rmSaidaParcial(spId,osId){
 
 // ===== FINALIZAÇÃO FLASH =====
 async function abrirFinFlash(osId){
-  const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
+  const{data:osBase}=await sb.from('ordens_servico').select('lote_id').eq('id',osId).single();
   document.getElementById('fnOsId').value=osId;
   document.getElementById('fnObs').value='';
   const btn=document.getElementById('btnFnCf');
   if(btn){btn.disabled=false;btn.textContent='Confirmar Finalização'}
-  document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl.peso_kg)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl.peso_saida_total)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso(ctrl.peso_saida_total-ctrl.peso_kg)} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
+  if(osBase?.lote_id){
+    // Buscar dados do lote para exibir no modal
+    const{data:lote}=await sb.from('flash_lotes').select('numero_lote,peso_entrada_total,peso_saida_total').eq('id',osBase.lote_id).single();
+    const{data:vinculos}=await sb.from('flash_lote_os').select('os_id').eq('lote_id',osBase.lote_id);
+    const qtdOS=(vinculos||[]).length;
+    document.getElementById('fnResumo').innerHTML=`<div class="peso-box" style="border-color:#8B5CF6;background:#F5F3FF"><p style="color:#5B21B6;font-weight:600;margin-bottom:8px">📦 ${lote?.numero_lote||'Lote'} — ${qtdOS} OS agrupadas</p><p style="font-size:13px;color:#6B7280">Esta OS faz parte de um lote. Ao finalizar, <strong>todas as ${qtdOS} OS do lote</strong> serão finalizadas juntas.</p><div class="fx ac jb mt8"><strong>Peso Entrada Total</strong><span>${formatPeso(lote?.peso_entrada_total||0)} KG</span></div><div class="fx ac jb mt8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(lote?.peso_saida_total||0)} KG</span></div></div><p class="ts tlt mt8">A observação de finalização é obrigatória e ficará no histórico de todas as OS.</p>`;
+  }else{
+    const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
+    document.getElementById('fnResumo').innerHTML=`<div class="peso-box"><div class="fx ac jb mb8"><strong>Peso Entrada</strong><span>${formatPeso(ctrl?.peso_kg||0)} KG</span></div><div class="fx ac jb mb8"><strong>Peso Saída Total</strong><span style="color:var(--ok);font-weight:600">${formatPeso(ctrl?.peso_saida_total||0)} KG</span></div><div class="fx ac jb"><strong>Diferença</strong><span>${formatPeso((ctrl?.peso_saida_total||0)-(ctrl?.peso_kg||0))} KG</span></div></div><p class="ts tlt">A observação de finalização é obrigatória e ficará no histórico da OS.</p>`;
+  }
   oM('mFinFlash');
 }
 async function confirmarFinFlash(){
   const osId=parseInt(document.getElementById('fnOsId').value);
   const obs=document.getElementById('fnObs').value.trim();
   if(!obs){toast('Informe a observação de finalização','er');return}
-  // Revalidar peso no servidor
+  // Verificar se a OS está em lote
+  const{data:osBase}=await sb.from('ordens_servico').select('lote_id,status').eq('id',osId).single();
+  if(osBase?.lote_id){
+    // OS faz parte de um lote — finalizar o lote inteiro
+    const loteId=osBase.lote_id;
+    // Verificar foto de saída do lote
+    const{data:fotosLote}=await sb.from('flash_lote_fotos').select('id').eq('lote_id',loteId).eq('tipo_foto','saida').limit(1);
+    if(!fotosLote||fotosLote.length===0){
+      if(!confirm('⚠️ Nenhuma foto de saída registrada no lote!\n\nTem certeza que deseja finalizar sem foto de saída?'))return;
+    }
+    const btn=document.getElementById('btnFnCf');btn.disabled=true;btn.textContent='Finalizando...';
+    try{
+      // Verificar peso do lote
+      const{data:lote}=await sb.from('flash_lotes').select('peso_entrada_total,peso_saida_total').eq('id',loteId).single();
+      if(lote&&lote.peso_saida_total<lote.peso_entrada_total){
+        if(!confirm(`⚠️ Peso de saída incompleto (${formatPeso(lote.peso_saida_total||0)} / ${formatPeso(lote.peso_entrada_total||0)} KG).\n\nFinalizar o lote mesmo assim?`)){btn.disabled=false;btn.textContent='Confirmar Finalização';return}
+      }
+      // Finalizar lote
+      await sb.from('flash_lotes').update({status:'finalizado',obs_finalizacao:obs,atualizado_em:new Date().toISOString()}).eq('id',loteId);
+      // Buscar e finalizar todas as OS do lote
+      const{data:vinculos}=await sb.from('flash_lote_os').select('os_id').eq('lote_id',loteId);
+      const osIds=(vinculos||[]).map(v=>v.os_id);
+      if(osIds.length){
+        await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',osIds);
+        const movs=osIds.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:`Finalizado via Lote — ${obs}`}));
+        await sb.from('movimentacoes_os').insert(movs);
+      }
+      toast(`Lote finalizado! ${osIds.length} OS finalizadas.`);
+      btn.disabled=false;btn.textContent='Confirmar Finalização';
+      cM('mFinFlash');
+      pgDet(document.getElementById('pg'),osId);
+    }catch(x){toast(x.message,'er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
+    return;
+  }
+  // OS individual sem lote — fluxo normal
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   if(!ctrl||ctrl.peso_saida_total<ctrl.peso_kg){toast('Peso de saída insuficiente para finalizar','er');return}
-  // Verificar se tem foto de saída
   const{data:fotosSaida}=await sb.from('flash_fotos').select('id').eq('os_id',osId).eq('tipo_foto','saida').limit(1);
   if(!fotosSaida||fotosSaida.length===0){
     if(!confirm('⚠️ Nenhuma foto de saída registrada!\n\nTem certeza que deseja finalizar sem foto de saída?'))return;
@@ -1710,7 +1769,7 @@ async function confirmarFinFlash(){
     await sb.from('flash_controle').update({obs_finalizacao:obs}).eq('os_id',osId);
     await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).eq('id',osId);
     await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Flash finalizado — '+obs});
-    toast('Flash finalizado!');btn.disabled=false;btn.textContent='Confirmar Finalização';cM('mFinFlash');go('finalizados');
+    toast('Flash finalizado!');btn.disabled=false;btn.textContent='Confirmar Finalização';cM('mFinFlash');pgDet(document.getElementById('pg'),osId);
   }catch(x){toast(x.message,'er');btn.disabled=false;btn.textContent='Confirmar Finalização'}
 }
 
@@ -1857,6 +1916,111 @@ async function limparFotosAntigas(){
   }
   status.textContent=`Concluído: ${ok} removidas, ${err} erros.`;
   toast(`${ok} fotos removidas`);
+}
+
+// ===== CATAFORETICO NO FLASH =====
+function abrirCataFlash(osId){
+  // Reutiliza o modal mCata (mesmo do folheação)
+  document.getElementById('ctOsId').value=osId;
+  document.getElementById('ctCata').checked=_o?.tem_cataforetico||false;
+  document.getElementById('ctObs').value='';
+  const btn=document.getElementById('btnCtSv');
+  if(btn){btn.disabled=false;btn.textContent='Confirmar'}
+  // Atualiza texto do modal para contexto Flash
+  const infoEl=document.querySelector('#mCata .peso-box p');
+  if(infoEl)infoEl.innerHTML=_o?.tem_cataforetico
+    ?'Ao <strong>remover</strong> o Cataforético, o prazo Flash será reduzido em <strong>7 dias</strong>.'
+    :'Ao <strong>adicionar</strong> o Cataforético, o prazo Flash será aumentado em <strong>7 dias</strong>.';
+  oM('mCata');
+}
+
+// ===== ALTERAR DATA DE ENTREGA (Flash) =====
+function abrirAltData(osId){
+  document.getElementById('adOsId').value=osId;
+  document.getElementById('adNovaData').value=_o?.data_entrada||'';
+  document.getElementById('adMotivo').value='';
+  document.getElementById('adPrazoPreview').style.display='none';
+  const prazoOrig=_o?.data_prevista_conclusao_original||_o?.data_prevista_conclusao;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const prazoOrigDt=prazoOrig?new Date(prazoOrig+'T00:00:00'):null;
+  const vencido=prazoOrigDt&&prazoOrigDt<hoje;
+  document.getElementById('adResumo').innerHTML=`<div class="peso-box ${vencido?'style="border-left:4px solid var(--er)"':''}">
+    <div class="fx ac jb mb8"><strong>Entrada atual</strong><span>${fd(_o?.data_entrada)}</span></div>
+    <div class="fx ac jb mb8"><strong>Prazo original</strong><span class="prz-orig">${fd(prazoOrig)}</span></div>
+    <div class="fx ac jb"><strong>Previsão atual</strong><span>${fd(_o?.data_prevista_conclusao)} ${vencido?'<span class="bdg ber2">⚠ Vencido internamente</span>':''}</span></div>
+    ${vencido?`<p class="ts mt8" style="color:var(--er)">⚠️ Esta OS já ultrapassou o prazo original. O sistema manterá o alerta interno de vencido, mas o cliente verá o novo prazo.</p>`:''}
+  </div>`;
+  const btn=document.getElementById('btnAltData');if(btn){btn.disabled=false;btn.textContent='Confirmar Alteração'}
+  calcPreviewPrazo();
+  oM('mAltData');
+}
+function calcPreviewPrazo(){
+  const novaData=document.getElementById('adNovaData')?.value;
+  const preview=document.getElementById('adPrazoPreview');
+  const prevEnt=document.getElementById('adPrevEnt');
+  const prevPrazo=document.getElementById('adPrevPrazo');
+  const prevObs=document.getElementById('adPrevObs');
+  if(!novaData||!preview)return;
+  const d=new Date(novaData+'T00:00:00');
+  // Calcular prazo: 7 dias + cataforético (mais 7 se ativo)
+  const diasCata=_o?.tem_cataforetico?7:0;
+  const totalDias=7+diasCata;
+  const prazo=new Date(d);prazo.setDate(prazo.getDate()+totalDias);
+  const fmtPrazo=prazo.toLocaleDateString('pt-BR');
+  prevEnt.textContent=d.toLocaleDateString('pt-BR');
+  prevPrazo.textContent=fmtPrazo;
+  prevObs.textContent=`7 dias Flash${diasCata>0?' + '+diasCata+'d Cataforético':''} = prazo ${fmtPrazo}`;
+  preview.style.display='';
+}
+async function confirmarAltData(){
+  const osId=parseInt(document.getElementById('adOsId').value);
+  const novaData=document.getElementById('adNovaData').value;
+  const motivo=document.getElementById('adMotivo').value.trim();
+  if(!novaData){toast('Informe a nova data de entrada','er');return}
+  if(!motivo){toast('Informe o motivo da alteração','er');return}
+  const btn=document.getElementById('btnAltData');btn.disabled=true;btn.textContent='Salvando...';
+  try{
+    // Calcular novo prazo
+    const d=new Date(novaData+'T00:00:00');
+    const diasCata=_o?.tem_cataforetico?7:0;
+    const totalDias=7+diasCata;
+    const novoPrazo=new Date(d);novoPrazo.setDate(novoPrazo.getDate()+totalDias);
+    const novoPrazoStr=novoPrazo.toISOString().split('T')[0];
+    const dataEntradaAnt=_o?.data_entrada;
+    const prazoAnt=_o?.data_prevista_conclusao;
+    // Atualizar OS: nova data entrada e novo prazo previsto (não muda prazo original)
+    const{error}=await sb.from('ordens_servico').update({
+      data_entrada:novaData,
+      data_prevista_conclusao:novoPrazoStr
+    }).eq('id',osId);
+    if(error)throw error;
+    // Registrar no histórico com detalhes completos
+    const nomeUser=UP?.nome||'Sistema';
+    const logText=`Alteração de data — Por: ${nomeUser} | Entrada: ${fd(dataEntradaAnt)} → ${fd(novaData)} | Prazo: ${fd(prazoAnt)} → ${fd(novoPrazoStr)} | Motivo: ${motivo}`;
+    await sb.from('movimentacoes_os').insert({
+      os_id:osId,
+      etapa_origem:'flash_em_andamento',
+      etapa_destino:'flash_em_andamento',
+      usuario_id:U?.id,
+      observacoes:logText
+    });
+    // Registrar em historico_prazo para aparecer na aba "Alterações Prazo"
+    // (tabela pode não ter a coluna etapa_nome para flash, usar insert seguro)
+    try{
+      await sb.from('historico_prazo').insert({
+        os_id:osId,
+        etapa_nome:'flash_prazo',
+        prazo_anterior:prazoAnt,
+        novo_prazo:novoPrazoStr,
+        justificativa:logText,
+        usuario_id:U?.id
+      });
+    }catch(e){/* historico_prazo pode não ter todos campos — registramos na movimentação mesmo */}
+    toast('Data de entrega alterada!');
+    cM('mAltData');
+    btn.disabled=false;btn.textContent='Confirmar Alteração';
+    pgDet(document.getElementById('pg'),osId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Alteração'}
 }
 
 // ===== CATAFORETICO (Catalogação / Admin) =====
