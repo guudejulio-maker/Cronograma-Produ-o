@@ -22,6 +22,7 @@
 .card{background:var(--bgc);border-radius:var(--rl);border:1px solid var(--brd);padding:24px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:28px}
 .st{background:var(--bgc);border-radius:var(--rl);border:1px solid var(--brd);padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:all .2s}.st:hover{box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
+@keyframes stPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.3)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
 .sti{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}.stv{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1}.stl{font-size:13px;color:var(--txl);margin-top:4px}
 .st1 .sti{background:var(--okb);color:var(--ok)}.st1 .stv{color:var(--ok)}.st2 .sti{background:var(--wnb);color:var(--wn)}.st2 .stv{color:var(--wn)}.st3 .sti{background:var(--erb);color:var(--er)}.st3 .stv{color:var(--er)}.st4 .sti{background:var(--infb);color:var(--inf)}.st4 .stv{color:var(--inf)}.st5 .sti{background:#F3F4F6;color:var(--txl)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-family:inherit;font-size:14px;font-weight:500;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
@@ -515,17 +516,94 @@ async function uploadFlashFotos(osId,files,tipo,saidaParcialId){
 async function deleteFlashFoto(fotoId,caminho){await sb.storage.from('flash-fotos').remove([caminho]);await sb.from('flash_fotos').delete().eq('id',fotoId)}
 
 // ===== DASHBOARD =====
-async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="stats" id="ds"></div><div id="dProntas"></div><div class="g2 mb24"><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div><div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div></div><div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;
+// Navega para produção com filtro pré-aplicado
+function goProducaoFiltrado(alerta,tipo){
+  _pgState['producao']={scroll:0,fields:{fT:'',fTp:tipo||'',fEt:'',fAl:alerta||''}};
+  go('producao');
+}
+function goFlashFiltrado(alerta){
+  _pgState['flash']={scroll:0,fields:{flT:'',flMes:'',flAno:'',flS:alerta==='vencido'?'vencido_prazo':'em_andamento'},flashTab:'os'};
+  go('flash');
+}
+async function pgD(el){
+  el.innerHTML=`
+  <div class="ph"><div><h2>Dashboard</h2><p class="phs">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div>
+  <div class="stats" id="ds"></div>
+  <div id="dAlertasCrit"></div>
+  <div id="dProntas"></div>
+  <div class="g2 mb24">
+    <div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">OS por Etapa</h3><div id="de"></div></div>
+    <div class="card"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Finalizadas Hoje</h3><div class="stv tc" id="df" style="font-size:40px;color:var(--ok);padding:20px 0">—</div></div>
+  </div>
+  <div class="card"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">OS Críticas</h3><button class="btn bo bsm" onclick="go('producao')">Ver todas</button></div><div id="dc"></div></div>`;
+
   const[r1,r2,r3,r4]=await Promise.all([
     sb.from('vw_dashboard_resumo').select('*').single(),
     sb.from('vw_os_por_etapa').select('*'),
-    sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(50),
+    sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').order('data_prevista_conclusao').limit(80),
     sb.from('ordens_servico').select('*,clientes(nome)').eq('status','em_andamento').eq('etapa_atual','postagem').order('data_prevista_conclusao')
   ]);
   const d=r1.data||{};
-  document.getElementById('ds').innerHTML=`<div class="st st4"><div class="sti">&#9881;</div><div class="stv">${d.total_andamento||0}</div><div class="stl">Em andamento</div></div><div class="st st1"><div class="sti">&#10003;</div><div class="stv">${d.total_no_prazo||0}</div><div class="stl">No prazo</div></div><div class="st st2"><div class="sti">&#9888;</div><div class="stv">${d.total_vence_amanha||0}</div><div class="stl">Vence amanhã</div></div><div class="st st3"><div class="sti">&#10007;</div><div class="stv">${d.total_vencidas||0}</div><div class="stl">Vencidas</div></div><div class="st st5"><div class="sti">&#9733;</div><div class="stv">${d.folheacao_andamento||0}</div><div class="stl">Folheação</div></div><div class="st st5"><div class="sti">&#9889;</div><div class="stv">${d.flash_andamento||0}</div><div class="stl">Flash</div></div>`;
+  const totalVenc=d.total_vencidas||0;
+  const totalAmanha=d.total_vence_amanha||0;
+  const totalHoje=d.total_vence_hoje||0; // pode não existir na view, calculamos abaixo
+  const allOS=r3.data||[];
+  const venc=allOS.filter(o=>alOrig(o)==='vencido');
+  const hj2=allOS.filter(o=>alOrig(o)==='vence_hoje');
+  const ama=allOS.filter(o=>alOrig(o)==='vence_amanha');
+
+  // ===== CARDS CLICÁVEIS =====
+  const stCard=(cls,icon,val,lbl,onclick,pulse)=>`
+    <div class="st ${cls}" style="cursor:${onclick?'pointer':'default'};${pulse?'animation:stPulse 2s infinite':''}${onclick?'transition:all .2s;':''}" onclick="${onclick||''}" title="${onclick?'Clique para filtrar':''}">
+      <div class="sti">${icon}</div>
+      <div class="stv">${val}</div>
+      <div class="stl">${lbl}</div>
+      ${onclick?`<div style="font-size:10px;color:var(--txm);margin-top:4px;letter-spacing:.3px">▶ clique para ver</div>`:''}
+    </div>`;
+  document.getElementById('ds').innerHTML=
+    stCard('st4','⚙️',d.total_andamento||0,'Em andamento','go(\'producao\')',false)+
+    stCard('st1','✓',d.total_no_prazo||0,'No prazo','goProducaoFiltrado(\'no_prazo\')',false)+
+    stCard('st2','⚠️',totalAmanha||ama.length,'Vence amanhã','goProducaoFiltrado(\'vence_amanha\')',false)+
+    (totalVenc||venc.length?stCard('st3','🔴',totalVenc||venc.length,'Vencidas','goProducaoFiltrado(\'vencido\')',true):stCard('st3','✗',0,'Vencidas','',false))+
+    stCard('st5','★',d.folheacao_andamento||0,'Folheação','goProducaoFiltrado(\'\',\'folheacao\')',false)+
+    stCard('st5','⚡',d.flash_andamento||0,'Flash','goFlashFiltrado(\'em_andamento\')',false);
+
   document.getElementById('df').textContent=d.finalizadas_hoje||0;
-  // Card: OS prontas para postar (folheação em postagem)
+
+  // ===== BANNER DE ALERTAS CRÍTICOS =====
+  const alertasCrit=document.getElementById('dAlertasCrit');
+  let alertaHtml='';
+  if(venc.length>0){
+    alertaHtml+=`<div class="card mb16" style="border:2px solid var(--er);background:linear-gradient(135deg,#FFF0F0 0%,#fff 100%);padding:16px 20px">
+      <div class="fx ac jb">
+        <div class="fx ac g8">
+          <span style="font-size:22px;animation:stPulse 1.5s infinite">🔴</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--er)">${venc.length} OS vencida${venc.length>1?'s':''} — Ação necessária!</div>
+            <div style="font-size:12px;color:var(--ert);margin-top:2px">${venc.slice(0,4).map(o=>`<strong>${o.numero_os}</strong>`).join(' · ')}${venc.length>4?` · +${venc.length-4} mais`:''}</div>
+          </div>
+        </div>
+        <button class="btn ber bsm" onclick="goProducaoFiltrado('vencido')" style="flex-shrink:0">Ver vencidas →</button>
+      </div>
+    </div>`;
+  }
+  if(hj2.length>0){
+    alertaHtml+=`<div class="card mb16" style="border:2px solid var(--or);background:linear-gradient(135deg,#FFF7F0 0%,#fff 100%);padding:16px 20px">
+      <div class="fx ac jb">
+        <div class="fx ac g8">
+          <span style="font-size:22px">🟠</span>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--or)">${hj2.length} OS vence${hj2.length>1?'m':''} hoje!</div>
+            <div style="font-size:12px;color:var(--ort);margin-top:2px">${hj2.slice(0,4).map(o=>`<strong>${o.numero_os}</strong>`).join(' · ')}${hj2.length>4?` · +${hj2.length-4} mais`:''}</div>
+          </div>
+        </div>
+        <button class="btn bsm" style="background:var(--or);color:#fff;flex-shrink:0" onclick="goProducaoFiltrado('vence_hoje')">Ver urgentes →</button>
+      </div>
+    </div>`;
+  }
+  alertasCrit.innerHTML=alertaHtml;
+
+  // ===== CARD PRONTAS PARA POSTAR =====
   const prontas=r4.data||[];
   const dProntas=document.getElementById('dProntas');
   if(prontas.length>0){
@@ -539,10 +617,32 @@ async function pgD(el){el.innerHTML=`<div class="ph"><div><h2>Dashboard</h2><p c
       </tbody></table></div>
     </div>`;
   }else{dProntas.innerHTML='';}
+
+  // ===== OS POR ETAPA =====
   const et=r2.data||[];
   document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';
-  const os=(r3.data||[]).filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'});
-  document.getElementById('dc').innerHTML=os.length?`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Previsão</th><th>Alerta</th></tr></thead><tbody>${os.sort(sortByUrgency).map(o=>`<tr class="${alOrig(o)==='vencido'?'re':''} cp" onclick="location.hash='d/${o.id}'")><td><strong>${o.numero_os}</strong></td><td>${o.clientes?.nome||'—'}</td><td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td><td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td><td>${fd(o.data_prevista_conclusao)}</td><td>${baOrig(o)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><h3>Tudo tranquilo!</h3><p>Nenhuma OS crítica.</p></div>';
+
+  // ===== OS CRÍTICAS (vencidas + hoje + amanhã), agrupadas por gravidade =====
+  const osCrit=allOS.filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'}).sort(sortByUrgency);
+  if(osCrit.length){
+    const rows=osCrit.map(o=>{
+      const a=alOrig(o);
+      const rowStyle=a==='vencido'?'background:rgba(220,38,38,.05);border-left:3px solid var(--er)':a==='vence_hoje'?'background:rgba(234,88,12,.04);border-left:3px solid var(--or)':'border-left:3px solid var(--wn)';
+      const diasAtr=a==='vencido'?diasAtraso(o.data_prevista_conclusao_original||o.data_postagem_prevista_original||o.data_prevista_conclusao,null):0;
+      return`<tr class="cp" style="${rowStyle}" onclick="location.hash='d/${o.id}'">
+        <td><strong>${o.numero_os}</strong>${a==='vencido'?`<br><span style="font-size:10px;color:var(--er);font-weight:600">+${diasAtr}d vencido</span>`:''}
+        </td>
+        <td class="trn" style="max-width:130px">${o.clientes?.nome||'—'}</td>
+        <td><span class="bt ${o.tipo==='flash'?'bfl':'bf'}">${o.tipo==='flash'?'Flash':'Folheação'}</span></td>
+        <td><span class="be">${le(o.etapa_atual)||'Entrada'}</span></td>
+        <td>${fd(o.data_prevista_conclusao_original||o.data_postagem_prevista_original)}</td>
+        <td>${baOrig(o)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('dc').innerHTML=`<div class="tw"><table><thead><tr><th>OS</th><th>Cliente</th><th>Tipo</th><th>Etapa</th><th>Prazo Original</th><th>Alerta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }else{
+    document.getElementById('dc').innerHTML='<div class="empty"><h3>Tudo tranquilo! ✓</h3><p>Nenhuma OS crítica no momento.</p></div>';
+  }
 }
 
 // ===== NOVA OS (com número automático para flash) =====
@@ -888,7 +988,97 @@ function fFin(){
 }
 
 // ===== KANBAN =====
-async function pgK(el){const C=[...ET,'finalizado'];el.innerHTML=`<div class="ph"><div><h2>Painel Etapas</h2><p class="phs">Kanban — Folheação</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div><div class="kb" id="kC"></div>`;const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','folheacao').in('status',['em_andamento','finalizada']).order('data_prevista_conclusao');const m={};C.forEach(c=>m[c]=[]);(data||[]).forEach(o=>{const e=o.etapa_atual||'entrada';if(m[e])m[e].push(o)});document.getElementById('kC').innerHTML=C.map(c=>{const l=m[c];return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(o=>`<div class="kcd" onclick="location.hash='d/${o.id}'"><div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os}</div><div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>${o.volume?`<div class="txs tlt">${o.volume}</div>`:''}<div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>${o.tem_cataforetico?'<span class="bc mt8">Cataf.</span>':''}</div>`).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`}).join('')}
+async function pgK(el){
+  const C=[...ET,'finalizado'];
+  el.innerHTML=`
+    <div class="ph"><div><h2>Painel Etapas</h2><p class="phs">Kanban geral — Folheação e Flash</p></div><button class="btn ba" onclick="go('nova-os')">+ Nova OS</button></div>
+    <div class="tabs" style="margin-bottom:20px">
+      <button class="tb on" id="kTabFolh" onclick="kSwitchTab('folheacao',this)">🌟 Folheação</button>
+      <button class="tb" id="kTabFlash" onclick="kSwitchTab('flash',this)">⚡ Flash</button>
+    </div>
+    <div id="kTabFolhContent"><div class="spin"></div></div>
+    <div id="kTabFlashContent" style="display:none"><div class="spin"></div></div>`;
+  await Promise.all([renderKanbanFolheacao(),renderKanbanFlash()]);
+}
+function kSwitchTab(tab,btn){
+  document.querySelectorAll('#kTabFolhContent,#kTabFlashContent').forEach(e=>e.style.display='none');
+  document.querySelectorAll('#kTabFolh,#kTabFlash').forEach(b=>b.classList.remove('on'));
+  document.getElementById(tab==='folheacao'?'kTabFolhContent':'kTabFlashContent').style.display='';
+  btn.classList.add('on');
+}
+async function renderKanbanFolheacao(){
+  const C=[...ET,'finalizado'];
+  const{data}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','folheacao').in('status',['em_andamento','finalizada']).order('data_prevista_conclusao');
+  const m={};C.forEach(c=>m[c]=[]);
+  (data||[]).forEach(o=>{const e=o.etapa_atual||'entrada';if(m[e])m[e].push(o)});
+  document.getElementById('kTabFolhContent').innerHTML=`<div class="kb">`+C.map(c=>{
+    const l=m[c];
+    return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(o=>{
+      const a=alOrig(o);const urgClass=a==='vencido'?'border-left:3px solid var(--er)':a==='vence_hoje'?'border-left:3px solid var(--or)':'';
+      return`<div class="kcd" style="${urgClass}" onclick="location.hash='d/${o.id}'"><div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os}</div><div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>${o.volume?`<div class="txs tlt">${o.volume}</div>`:''}<div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>${o.tem_cataforetico?'<span class="bc mt8">Cataf.</span>':''}</div>`
+    }).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`;
+  }).join('')+`</div>`;
+}
+async function renderKanbanFlash(){
+  const[r1,r2,r3]=await Promise.all([
+    sb.from('ordens_servico').select('*,clientes(nome)').eq('tipo','flash').in('status',['em_andamento']).is('lote_id',null).order('data_prevista_conclusao'),
+    sb.from('flash_lotes').select('*,flash_lote_os(os_id,peso_entrada,ordens_servico(numero_os,clientes(nome)))').eq('status','em_andamento').order('criado_em'),
+    sb.from('flash_controle').select('os_id,cor,peso_kg,peso_saida_total')
+  ]);
+  const osIndiv=r1.data||[];
+  const lotes=r2.data||[];
+  const ctrlMap={};(r3.data||[]).forEach(c=>ctrlMap[c.os_id]=c);
+
+  // Colunas Flash: No Prazo, Vence Amanhã, Vencido, + Lotes ativos
+  const grNoPrazo=osIndiv.filter(o=>alOrig(o)==='no_prazo');
+  const grAmanha=osIndiv.filter(o=>alOrig(o)==='vence_amanha');
+  const grHoje=osIndiv.filter(o=>alOrig(o)==='vence_hoje');
+  const grVencido=osIndiv.filter(o=>alOrig(o)==='vencido');
+
+  const flashCard=(o)=>{
+    const ctrl=ctrlMap[o.id];
+    const a=alOrig(o);
+    const urgBorder=a==='vencido'?'border-left:3px solid var(--er)':a==='vence_hoje'?'border-left:3px solid var(--or)':a==='vence_amanha'?'border-left:3px solid var(--wn)':'';
+    const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:10px;padding:2px 6px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'';
+    const pesoS=ctrl?.peso_saida_total!=null?formatPeso(ctrl.peso_saida_total)+'KG sai':'—';
+    return`<div class="kcd" style="${urgBorder}" onclick="location.hash='d/${o.id}'">
+      <div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os} ${corBdg}</div>
+      <div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>
+      <div class="txs tlt">${ctrl?formatPeso(ctrl.peso_kg)+' KG entrada':o.volume||'—'}</div>
+      <div class="fx ac jb mt8"><span class="txs tlt">${fd(o.data_prevista_conclusao)}</span>${ba(o.data_prevista_conclusao)}</div>
+    </div>`;
+  };
+
+  const loteCard=(l)=>{
+    const osCount=l.flash_lote_os?.length||0;
+    const clienteNome=l.flash_lote_os?.[0]?.ordens_servico?.clientes?.nome||'—';
+    const pEnt=Number(l.peso_entrada_total||0);const pSai=Number(l.peso_saida_total||0);
+    const completo=pEnt>0&&pSai>=pEnt;const pct=pEnt>0?Math.min(100,(pSai/pEnt)*100):0;
+    return`<div class="kcd" style="border-left:3px solid #8B5CF6" onclick="_pgState['flash']={scroll:0,fields:{flT:'',flMes:'',flAno:'',flS:'em_andamento'},flashTab:'lotes'};go('flash')">
+      <div style="font-weight:600;font-size:13px;color:#5B21B6">${l.numero_lote} <span style="font-size:10px;background:#EDE9FE;color:#5B21B6;padding:2px 6px;border-radius:8px">${osCount} OS</span></div>
+      <div class="ts tlt" style="margin-top:2px">${clienteNome}</div>
+      ${l.cor?`<span class="bdg b-${l.cor}" style="font-size:10px;padding:2px 6px;margin-top:4px;display:inline-block">${COR_LBL[l.cor]||l.cor}</span>`:''}
+      <div style="height:4px;background:#E5E1DA;border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${completo?'var(--ok)':'var(--wn)'};border-radius:3px"></div></div>
+      <div class="txs tlt mt8">${formatPeso(pSai)} / ${formatPeso(pEnt)} KG</div>
+    </div>`;
+  };
+
+  const colFlash=(title,items,extra='',headerStyle='')=>`
+    <div class="kc"><div class="kh" style="${headerStyle}"><h4>${title}</h4><span class="kcn">${items.length+(extra?'*':'')}</span></div>
+    <div class="kby">${items.length?items.map(flashCard).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`;
+
+  const colLotes=lotes.length?`<div class="kc" style="min-width:240px"><div class="kh" style="border-bottom:2px solid #8B5CF6"><h4 style="color:#5B21B6">📦 Lotes</h4><span class="kcn">${lotes.length}</span></div><div class="kby">${lotes.map(loteCard).join('')}</div></div>`:'' ;
+
+  document.getElementById('kTabFlashContent').innerHTML=`
+    <p class="ts tlt mb16">OS Flash individuais em andamento por urgência. Clique em um lote para ir à aba Flash → Lotes.</p>
+    <div class="kb">
+      ${grVencido.length?colFlash('🔴 Vencidas',grVencido,'','border-bottom:2px solid var(--er)'):''}
+      ${grHoje.length?colFlash('🟠 Vence Hoje',grHoje,'','border-bottom:2px solid var(--or)'):''}
+      ${colFlash('⚠️ Vence Amanhã',grAmanha,'','border-bottom:2px solid var(--wn)')}
+      ${colFlash('✓ No Prazo',grNoPrazo,'','border-bottom:2px solid var(--ok)')}
+      ${colLotes}
+    </div>`;
+}
 
 // ===== FLASH (lista com filtros mês/ano) =====
 let FL=[];
@@ -957,7 +1147,8 @@ function fFL(){
   const fcs=window._flFcs||{};
   let r=FL.filter(o=>{
     if(t&&!o.numero_os.toLowerCase().includes(t)&&!(o.clientes?.nome||'').toLowerCase().includes(t))return!1;
-    if(s&&o.status!==s)return!1;
+    if(s==='vencido_prazo'){if(al(o.data_prevista_conclusao)!=='vencido')return!1;}
+    else if(s&&o.status!==s)return!1;
     if(ano&&!o.data_entrada?.startsWith(ano))return!1;
     if(mes&&o.data_entrada){const m=parseInt(o.data_entrada.substring(5,7));if(m!==parseInt(mes))return!1}
     return!0;
@@ -1060,24 +1251,38 @@ async function bulkFinalizar(){
   if(_flSel.size===0)return;
   const ossSel=FL.filter(o=>_flSel.has(o.id)&&o.status==='em_andamento');
   if(ossSel.length===0){toast('Nenhuma OS em andamento selecionada','er');return}
-  const obs=prompt(`Finalizar ${ossSel.length} OS?\nObservacao de finalizacao:`);
-  if(obs===null)return;
-  if(!obs.trim()){toast('Observacao obrigatoria','er');return}
-  const ids=ossSel.map(o=>o.id);
-  // Verificar fotos de saída
-  const{data:fotos}=await sb.from('flash_fotos').select('os_id').in('os_id',ids).eq('tipo_foto','saida');
-  const comFoto=new Set((fotos||[]).map(f=>f.os_id));
-  const semFoto=ossSel.filter(o=>!comFoto.has(o.id));
-  if(semFoto.length>0){
-    const nomes=semFoto.map(o=>o.numero_os).join(', ');
-    if(!confirm(`⚠️ ${semFoto.length} OS sem foto de saída: ${nomes}\n\nDeseja finalizar mesmo assim?`))return;
+
+  // Expandir lotes: se selecionou qualquer OS de um lote, pega todas do lote
+  const loteIds=[...new Set(ossSel.filter(o=>o.lote_id).map(o=>o.lote_id))];
+  let todasOsIds=[...new Set(ossSel.map(o=>o.id))]; // começa pelas selecionadas
+  let osDeOutrosLotes=[];
+  if(loteIds.length>0){
+    const{data:vinculos}=await sb.from('flash_lote_os').select('os_id,lote_id').in('lote_id',loteIds);
+    const idsDoLote=(vinculos||[]).map(v=>v.os_id);
+    // Adiciona as que não foram selecionadas mas estão no lote
+    osDeOutrosLotes=FL.filter(o=>idsDoLote.includes(o.id)&&!todasOsIds.includes(o.id));
+    todasOsIds=[...new Set([...todasOsIds,...idsDoLote])];
   }
+
+  const totalFinalizar=todasOsIds.length;
+  const avisoLote=osDeOutrosLotes.length>0
+    ?`\n⚠️ ${osDeOutrosLotes.length} OS adicionadas automaticamente por fazerem parte do mesmo lote: ${osDeOutrosLotes.map(o=>o.numero_os).join(', ')}`
+    :'';
+  const obs=prompt(`Finalizar ${totalFinalizar} OS?${avisoLote}\n\nObservação de finalização:`);
+  if(obs===null)return;
+  if(!obs.trim()){toast('Observação obrigatória','er');return}
+
+  // Finalizar lotes completos
+  if(loteIds.length>0){
+    await sb.from('flash_lotes').update({status:'finalizado',obs_finalizacao:obs,atualizado_em:new Date().toISOString()}).in('id',loteIds);
+  }
+  // Finalizar todas as OS (selecionadas + expandidas do lote)
   try{
-    await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',ids);
-    const movs=ids.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:'Finalizacao em massa - '+obs}));
+    await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',todasOsIds);
+    const movs=todasOsIds.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:(loteIds.length>0?'Finalizado via Lote — ':'Finalização em massa — ')+obs}));
     await sb.from('movimentacoes_os').insert(movs);
-    await sb.from('flash_controle').update({obs_finalizacao:obs}).in('os_id',ids);
-    toast(`${ids.length} OS finalizadas!`);limparSelFlash();await pgF(document.getElementById('pg'));
+    await sb.from('flash_controle').update({obs_finalizacao:obs}).in('os_id',todasOsIds);
+    toast(`${totalFinalizar} OS finalizadas!`);limparSelFlash();await pgF(document.getElementById('pg'));
   }catch(x){toast(x.message||'Erro','er')}
 }
 // bulkPostar removido do Flash — Flash nao usa status Postado
@@ -1749,6 +1954,7 @@ async function confirmarFinFlash(){
         await sb.from('ordens_servico').update({status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()}).in('id',osIds);
         const movs=osIds.map(id=>({os_id:id,etapa_origem:'flash_em_andamento',etapa_destino:'finalizado',usuario_id:U?.id,observacoes:`Finalizado via Lote — ${obs}`}));
         await sb.from('movimentacoes_os').insert(movs);
+        await sb.from('flash_controle').update({obs_finalizacao:obs}).in('os_id',osIds);
       }
       toast(`Lote finalizado! ${osIds.length} OS finalizadas.`);
       btn.disabled=false;btn.textContent='Confirmar Finalização';
@@ -1944,7 +2150,7 @@ function abrirAltData(osId){
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const prazoOrigDt=prazoOrig?new Date(prazoOrig+'T00:00:00'):null;
   const vencido=prazoOrigDt&&prazoOrigDt<hoje;
-  document.getElementById('adResumo').innerHTML=`<div class="peso-box ${vencido?'style="border-left:4px solid var(--er)"':''}">
+  document.getElementById('adResumo').innerHTML=`<div class="peso-box" ${vencido?'style="border-left:4px solid var(--er)"':''}>
     <div class="fx ac jb mb8"><strong>Entrada atual</strong><span>${fd(_o?.data_entrada)}</span></div>
     <div class="fx ac jb mb8"><strong>Prazo original</strong><span class="prz-orig">${fd(prazoOrig)}</span></div>
     <div class="fx ac jb"><strong>Previsão atual</strong><span>${fd(_o?.data_prevista_conclusao)} ${vencido?'<span class="bdg ber2">⚠ Vencido internamente</span>':''}</span></div>
