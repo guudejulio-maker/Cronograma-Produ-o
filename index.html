@@ -725,10 +725,11 @@ async function svOS(e){
     }
     toast('OS cadastrada!');
     if(tipo==='flash'){
-      // Buscar dados para ficha
+      // Abrir janela ANTES dos awaits — Safari iOS exige contexto direto de clique
+      const wFicha=window.open('','_blank','width=320,height=500');
       const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',os.id).single();
       const{data:cli}=await sb.from('clientes').select('nome').eq('id',os.cliente_id).single();
-      imprimirFichaFlash({numero_os:os.numero_os,cliente:cli?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:os.data_entrada});
+      imprimirFichaFlash({numero_os:os.numero_os,cliente:cli?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:os.data_entrada},wFicha);
     }
     setTimeout(()=>location.hash='d/'+os.id,500);
   }catch(x){toast(x.message||'Erro','er');b.disabled=false;b.textContent='Cadastrar OS'}
@@ -2545,18 +2546,20 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida,lote,lot
 
 // ===== FICHA DE ENTRADA FLASH (impressão) =====
 async function imprimirFichaFlashOS(osId){
+  // Abrir janela ANTES do await — Safari iOS exige contexto direto de clique
+  const w=window.open('','_blank','width=320,height=500');
+  if(!w){toast('Popup bloqueado. Permita popups para este site.','er');return;}
   const{data:ctrl}=await sb.from('flash_controle').select('*').eq('os_id',osId).single();
   if(_o&&_o.id===osId){
-    imprimirFichaFlash({numero_os:_o.numero_os,cliente:_o.clientes?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:_o.data_entrada});
+    imprimirFichaFlash({numero_os:_o.numero_os,cliente:_o.clientes?.nome||'',cor:ctrl?.cor||'',peso_kg:ctrl?.peso_kg||0,data_entrada:_o.data_entrada},w);
   }
 }
-function imprimirFichaFlash(dados){
+function imprimirFichaFlash(dados,w){
   const{numero_os,cliente,cor,peso_kg,data_entrada}=dados;
   const corLabel={ouro:'Ouro',prata:'Prata',diamante:'Diamante'}[cor]||cor||'—';
   const corHex={ouro:'#D4A853',prata:'#9CA3AF',diamante:'#8B5CF6'}[cor]||'#1B2A4A';
   const dataFmt=data_entrada?new Date(data_entrada+'T00:00:00').toLocaleDateString('pt-BR'):'—';
-  const w=window.open('','_blank','width=320,height=420');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Flash ${numero_os}</title>
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Flash ${numero_os}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Arial',sans-serif;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:8px}
@@ -2589,8 +2592,8 @@ function imprimirFichaFlash(dados){
     </div>
     <div class="rodape">✂ Destacar e fixar na OS</div>
   </div>
-  </body></html>`);
-  w.document.close();
+  </body></html>`;
+  if(w){w.document.write(html);w.document.close();}
 }
 
 init();
