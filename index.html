@@ -229,6 +229,16 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="fg mt16"><label>Observação de Finalização *</label><textarea id="fnLoteObs" class="fc" placeholder="Observação final..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mFinLote')">Cancelar</button><button class="btn bok" onclick="confirmarFinLote()" id="btnFinLote">Confirmar Finalização</button></div></div></div>
 
+<!-- Modal Finalizar OS (Folheação direto) -->
+<div class="modal" id="mFinOS"><div class="mc" style="max-width:480px"><div class="mh"><h3>Finalizar OS</h3><button class="mx" onclick="cM('mFinOS')">&times;</button></div><div class="mb">
+<input type="hidden" id="foOsId">
+<div class="peso-box" style="border-left:4px solid var(--er);background:#FFF0F0">
+  <p style="color:#991B1B;font-size:13px">⚠️ Esta ação finaliza a OS <strong>diretamente</strong>, ignorando as etapas pendentes. Use apenas quando necessário.</p>
+</div>
+<div id="foResumo" class="mt16"></div>
+<div class="fg mt16"><label>Observação de Finalização *</label><textarea id="foObs" class="fc" rows="3" placeholder="Motivo da finalização direta..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mFinOS')">Cancelar</button><button class="btn ber" onclick="confirmarFinOS()" id="btnFinOS">✓ Finalizar OS</button></div></div></div>
+
 <!-- Modal Alterar Data de Entrega (Flash) -->
 <div class="modal" id="mAltData"><div class="mc" style="max-width:520px"><div class="mh"><h3>Alterar Data de Entrega</h3><button class="mx" onclick="cM('mAltData')">&times;</button></div><div class="mb">
 <input type="hidden" id="adOsId">
@@ -1733,7 +1743,7 @@ async function pgDet(el,id){
       </div>
     </div>`:''
 
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}${isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn bo bsm" onclick="abrirAltData(${os.id})">📅 Alterar Data</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}${isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn bo bsm" onclick="abrirAltData(${os.id})">📅 Alterar Data</button>`:''}${!isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn ber bsm" onclick="abrirFinOS(${os.id})">✓ Finalizar OS</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   ${loteBanner}
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
@@ -2047,10 +2057,10 @@ async function avE(id){
     toast(msg,'er');return
   }
   const r=typeof data==='string'?JSON.parse(data):data;
-  // Se finalizou (última etapa), vai para finalizados
   const{data:osAtual}=await sb.from('ordens_servico').select('status').eq('id',id).single();
-  if(osAtual?.status==='finalizada'){toast(r.message+' ✓ OS finalizada!');go('finalizados')}
-  else{toast(r.message);pgDet(document.getElementById('pg'),id)}
+  if(osAtual?.status==='finalizada'){toast(r.message+' ✓ OS finalizada!')}
+  else{toast(r.message)}
+  pgDet(document.getElementById('pg'),id);
 }
 function abrirPostagem(id){
   // Flash: postar direto sem modal
@@ -2176,6 +2186,41 @@ function abrirCataFlash(osId){
     ?'Ao <strong>remover</strong> o Cataforético, o prazo Flash será reduzido em <strong>7 dias</strong>.'
     :'Ao <strong>adicionar</strong> o Cataforético, o prazo Flash será aumentado em <strong>7 dias</strong>.';
   oM('mCata');
+}
+
+// ===== FINALIZAR OS FOLHEAÇÃO DIRETO =====
+function abrirFinOS(osId){
+  document.getElementById('foOsId').value=osId;
+  document.getElementById('foObs').value='';
+  const btn=document.getElementById('btnFinOS');if(btn){btn.disabled=false;btn.textContent='✓ Finalizar OS'}
+  // Mostrar etapas pendentes
+  const etapasPend=(_o?.etapas||[]).filter(e=>e.status==='pendente'||e.status==='em_andamento');
+  document.getElementById('foResumo').innerHTML=etapasPend.length
+    ?`<div class="peso-box"><p class="ts tlt mb8">Etapas que serão ignoradas:</p>${etapasPend.map(e=>`<div class="fx ac jb" style="padding:4px 0"><span class="be">${le(e.etapa_nome)}</span><span class="ts tlt">${e.status==='em_andamento'?'Em andamento':'Pendente'}</span></div>`).join('')}</div>`
+    :`<div class="peso-box"><p class="ts" style="color:var(--ok)">✓ Todas as etapas já concluídas.</p></div>`;
+  oM('mFinOS');
+}
+async function confirmarFinOS(){
+  const osId=parseInt(document.getElementById('foOsId').value);
+  const obs=document.getElementById('foObs').value.trim();
+  if(!obs){toast('Informe a observação de finalização','er');return}
+  const btn=document.getElementById('btnFinOS');btn.disabled=true;btn.textContent='Finalizando...';
+  try{
+    // Concluir todas as etapas pendentes/em andamento
+    await sb.from('etapas_os').update({status:'concluida',data_saida_real:new Date().toISOString()})
+      .eq('os_id',osId).in('status',['pendente','em_andamento']);
+    // Finalizar a OS
+    await sb.from('ordens_servico').update({
+      status:'finalizada',etapa_atual:'finalizado',data_conclusao:new Date().toISOString()
+    }).eq('id',osId);
+    // Registrar movimentação
+    await sb.from('movimentacoes_os').insert({
+      os_id:osId,etapa_origem:_o?.etapa_atual||'',etapa_destino:'finalizado',
+      usuario_id:U?.id,observacoes:'Finalização direta — '+obs
+    });
+    toast('OS finalizada!');btn.disabled=false;btn.textContent='✓ Finalizar OS';
+    cM('mFinOS');pgDet(document.getElementById('pg'),osId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='✓ Finalizar OS'}
 }
 
 // ===== ALTERAR DATA DE ENTREGA (Flash) =====
@@ -2600,4 +2645,3 @@ init();
 </script>
 </body>
 </html>
-
