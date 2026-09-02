@@ -346,7 +346,7 @@ async function moverEtapaLocal(osId){
   const prox=etapas[idx+1];
   const updates=[];
   updates.push(sb.from('etapas_os').update({status:'concluida',data_saida_real:atual.data_saida_real||agora,atualizado_em:agora}).eq('id',atual.id));
-  let novoStatus='finalizada',novaEtapa='postagem';
+  let novoStatus='finalizada',novaEtapa='finalizado';
   if(prox){
     novoStatus='em_andamento';
     novaEtapa=prox.etapa_nome;
@@ -356,7 +356,7 @@ async function moverEtapaLocal(osId){
   const osUpd={etapa_atual:novaEtapa};
   if(!prox){osUpd.status='finalizada';osUpd.data_conclusao=agora;}
   await sb.from('ordens_servico').update(osUpd).eq('id',osId);
-  await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:atual.etapa_nome,etapa_destino:prox?prox.etapa_nome:'postagem',usuario_id:U?.id||null,observacoes:'Avanço manual por fallback de permissão'});
+  await sb.from('movimentacoes_os').insert({os_id:osId,etapa_origem:atual.etapa_nome,etapa_destino:prox?prox.etapa_nome:'finalizado',usuario_id:U?.id||null,observacoes:'Avanço manual por fallback de permissão'});
   await recomputeOsPrev(osId);
 }
 async function alterarPrazoLocal(etapaId,novoPrazo,justificativa){
@@ -638,9 +638,14 @@ async function pgD(el){
     </div>`;
   }else{dProntas.innerHTML='';}
 
-  // ===== OS POR ETAPA =====
+  // ===== OS POR ETAPA (Folheação e Flash separados) =====
   const et=r2.data||[];
-  document.getElementById('de').innerHTML=et.length?et.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join(''):'<p class="tlt ts">Nenhuma OS</p>';
+  const etF=et.filter(i=>i.tipo==='folheacao'),etFl=et.filter(i=>i.tipo==='flash');
+  const rowsEt=(arr)=>arr.map(i=>`<div class="fx ac jb" style="padding:10px 0;border-bottom:1px solid var(--brd)"><span class="be">${le(i.etapa_atual)}</span><span style="font-weight:600;font-size:18px">${i.quantidade}</span></div>`).join('');
+  document.getElementById('de').innerHTML=et.length?`
+    ${etF.length?`<div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🌟 Folheação</div>${rowsEt(etF)}`:''}
+    ${etFl.length?`<div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px;margin:${etF.length?'16px':'0'} 0 4px">⚡ Flash</div>${rowsEt(etFl)}`:''}
+  `:'<p class="tlt ts">Nenhuma OS</p>';
 
   // ===== OS CRÍTICAS (vencidas + hoje + amanhã), agrupadas por gravidade =====
   const osCrit=allOS.filter(o=>{const a=alOrig(o);return a==='vencido'||a==='vence_hoje'||a==='vence_amanha'}).sort(sortByUrgency);
@@ -864,24 +869,24 @@ function atualizarBulkBarP(){
   if(!bar)return;
   if(_pSel.size===0){bar.style.display='none';document.getElementById('pg').style.paddingBottom='';return;}
   bar.style.display='flex';document.getElementById('pg').style.paddingBottom='80px';
-  // Checar se todas selecionadas são folheação e mesma etapa
+  // Checar se todas selecionadas são do mesmo tipo (folheação OU flash) e mesma etapa
   const ossSel=AO.filter(o=>_pSel.has(o.id));
-  const todasFolh=ossSel.length>0&&ossSel.every(o=>o.tipo==='folheacao');
+  const mesmoTipo=ossSel.length>0&&ossSel.every(o=>o.tipo===ossSel[0].tipo);
   const etapas=[...new Set(ossSel.map(o=>o.etapa_atual))];
   const mesmaEtapa=etapas.length===1;
-  const podeFolhAv=todasFolh&&mesmaEtapa&&ossSel.every(o=>isAdmin()||podeEditar(o.etapa_atual));
+  const podeFolhAv=mesmoTipo&&mesmaEtapa&&ossSel.every(o=>isAdmin()||podeEditar(o.etapa_atual));
   if(btnAvE){
     btnAvE.style.display=podeFolhAv?'':'none';
     if(podeFolhAv)btnAvE.title=`Avançar etapa: ${le(etapas[0])} → próxima`;
   }
-  const etapaInfo=podeFolhAv?` · Etapa: ${le(etapas[0])}`:(todasFolh&&!mesmaEtapa?' · Etapas diferentes':' ');
+  const etapaInfo=podeFolhAv?` · Etapa: ${le(etapas[0])}`:(mesmoTipo&&!mesmaEtapa?' · Etapas diferentes':' ');
   count.innerHTML=`${_pSel.size} OS selecionada${_pSel.size>1?'s':''}<span style="opacity:.7;font-size:12px">${etapaInfo}</span>`;
 }
 async function pBulkAvancarEtapa(){
   if(_pSel.size===0)return;
   const ossSel=AO.filter(o=>_pSel.has(o.id));
   // Validações
-  if(!ossSel.every(o=>o.tipo==='folheacao')){toast('Avançar etapa só para Folheação','er');return}
+  if(!ossSel.every(o=>o.tipo===ossSel[0].tipo)){toast('Selecione OS do mesmo tipo (Folheação ou Flash) para avançar juntas','er');return}
   const etapas=[...new Set(ossSel.map(o=>o.etapa_atual))];
   if(etapas.length>1){toast('Selecione OS na mesma etapa para avançar juntas','er');return}
   await refreshPerms();
@@ -1050,18 +1055,16 @@ async function renderKanbanFlash(){
   const lotes=r2.data||[];
   const ctrlMap={};(r3.data||[]).forEach(c=>ctrlMap[c.os_id]=c);
 
-  // Colunas Flash: No Prazo, Vence Amanhã, Vencido, + Lotes ativos
-  const grNoPrazo=osIndiv.filter(o=>alOrig(o)==='no_prazo');
-  const grAmanha=osIndiv.filter(o=>alOrig(o)==='vence_amanha');
-  const grHoje=osIndiv.filter(o=>alOrig(o)==='vence_hoje');
-  const grVencido=osIndiv.filter(o=>alOrig(o)==='vencido');
+  // Colunas Flash: por etapa (igual Folheação), + coluna de Lotes ativos
+  const C=[...FL_ET,'finalizado'];
+  const m={};C.forEach(c=>m[c]=[]);
+  osIndiv.forEach(o=>{const e=o.etapa_atual||'flash_entrada';if(m[e])m[e].push(o)});
 
   const flashCard=(o)=>{
     const ctrl=ctrlMap[o.id];
     const a=alOrig(o);
     const urgBorder=a==='vencido'?'border-left:3px solid var(--er)':a==='vence_hoje'?'border-left:3px solid var(--or)':a==='vence_amanha'?'border-left:3px solid var(--wn)':'';
     const corBdg=ctrl?`<span class="bdg b-${ctrl.cor}" style="font-size:10px;padding:2px 6px">${COR_LBL[ctrl.cor]||ctrl.cor}</span>`:'';
-    const pesoS=ctrl?.peso_saida_total!=null?formatPeso(ctrl.peso_saida_total)+'KG sai':'—';
     return`<div class="kcd" style="${urgBorder}" onclick="location.hash='d/${o.id}'">
       <div style="font-weight:600;font-size:14px;color:var(--pri)">${o.numero_os} ${corBdg}</div>
       <div class="ts tlt" style="margin-top:2px">${o.clientes?.nome||'—'}</div>
@@ -1084,20 +1087,14 @@ async function renderKanbanFlash(){
     </div>`;
   };
 
-  const colFlash=(title,items,extra='',headerStyle='')=>`
-    <div class="kc"><div class="kh" style="${headerStyle}"><h4>${title}</h4><span class="kcn">${items.length+(extra?'*':'')}</span></div>
-    <div class="kby">${items.length?items.map(flashCard).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`;
-
   const colLotes=lotes.length?`<div class="kc" style="min-width:240px"><div class="kh" style="border-bottom:2px solid #8B5CF6"><h4 style="color:#5B21B6">📦 Lotes</h4><span class="kcn">${lotes.length}</span></div><div class="kby">${lotes.map(loteCard).join('')}</div></div>`:'' ;
 
   document.getElementById('kTabFlashContent').innerHTML=`
-    <p class="ts tlt mb16">OS Flash individuais em andamento por urgência. Clique em um lote para ir à aba Flash → Lotes.</p>
-    <div class="kb">
-      ${grVencido.length?colFlash('🔴 Vencidas',grVencido,'','border-bottom:2px solid var(--er)'):''}
-      ${grHoje.length?colFlash('🟠 Vence Hoje',grHoje,'','border-bottom:2px solid var(--or)'):''}
-      ${colFlash('⚠️ Vence Amanhã',grAmanha,'','border-bottom:2px solid var(--wn)')}
-      ${colFlash('✓ No Prazo',grNoPrazo,'','border-bottom:2px solid var(--ok)')}
-      ${colLotes}
+    <p class="ts tlt mb16">OS Flash individuais em andamento, por etapa. Clique em um lote para ir à aba Flash → Lotes.</p>
+    <div class="kb">`+C.map(c=>{
+      const l=m[c];
+      return`<div class="kc"><div class="kh"><h4>${le(c)}</h4><span class="kcn">${l.length}</span></div><div class="kby">${l.length?l.map(flashCard).join(''):'<p class="tlt ts tc" style="padding:20px 0">Vazio</p>'}</div></div>`;
+    }).join('')+colLotes+`
     </div>`;
 }
 
@@ -2466,7 +2463,7 @@ async function loadPublicOS(token){
     const{data:os,error}=await sb.from('vw_acompanhamento_cliente').select('*').eq('token_publico',token).single();
     if(error||!os){app.innerHTML='<div style="text-align:center;padding:60px 20px"><h2 style="font-size:20px;color:var(--pri);margin-bottom:8px">OS não encontrada</h2><p style="color:var(--txl);font-size:14px">O link pode ter expirado ou ser inválido.<br>Solicite um novo link à Scarlat Galvânica.</p></div>';return}
     let etapas=[];
-    if(os.tipo==='folheacao'){const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
+    {const{data:et}=await sb.from('etapas_os').select('etapa_nome,ordem,status').eq('os_id',os.os_id).order('ordem');etapas=et||[]}
     let flashCtrl=null,flashFotosEntrada=[],flashFotosSaida=[],lote=null,loteOsList=[];
     if(os.tipo==='flash'){
       // Verificar se faz parte de um lote
@@ -2591,12 +2588,12 @@ async function renderPublic(os,etapas,flashCtrl,fotosEntrada,fotosSaida,lote,lot
     });
     h+='</div></div>';
   }
-  if(isFolh&&etapas.length>0){
+  if(etapas.length>0){
     h+='<div class="pub-card"><div class="pub-card-title">Progresso das Etapas</div>';
     etapas.forEach((e,i)=>{
-      const dn=e.status==='concluida',cr=e.status==='em_andamento';
+      const dn=e.status==='concluida'||e.status==='pulada',cr=e.status==='em_andamento';
       const dc=dn?'dn':cr?'cr':'';const nc=dn?'dn':cr?'cr':'pd';
-      const ic=dn?'✓':cr?'●':(i+1);const st=dn?'Concluída':cr?'Em andamento':'Aguardando';
+      const ic=dn?'✓':cr?'●':(i+1);const st=e.status==='concluida'?'Concluída':cr?'Em andamento':e.status==='pulada'?'Pulada':'Aguardando';
       h+=`<div class="pub-step"><div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0"><div class="pub-dot ${dc}">${ic}</div>${i<etapas.length-1?`<div class="pub-line ${dn?'dn':''}"></div>`:''}</div><div style="padding:6px 0 28px"><div class="pub-sn ${nc}">${PUB_EL[e.etapa_nome]||e.etapa_nome}</div><div class="pub-ss ${dn?'dn':''}">${st}</div></div></div>`;
     });
     h+='</div>';
