@@ -154,6 +154,14 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="fg mt16"><label>Motivo / Observação *</label><textarea id="veObs" class="fc" placeholder="Motivo do retorno..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mVoltarE')">Cancelar</button><button class="btn ber" onclick="confirmarVoltarEtapa()" id="btnVeSv">Voltar Etapa</button></div></div></div>
 
+<!-- Modal Pular Etapa (Admin) -->
+<div class="modal" id="mPularE"><div class="mc" style="max-width:500px"><div class="mh"><h3>Pular Etapa</h3><button class="mx" onclick="cM('mPularE')">&times;</button></div><div class="mb">
+<input type="hidden" id="peOsId">
+<div class="peso-box"><p class="ts">A OS será movida diretamente para a etapa escolhida (pra frente ou pra trás). Etapas puladas ficam marcadas como "Pulada" no histórico.</p></div>
+<div class="fg mt16"><label>Etapa de destino *</label><select id="peEtapaDestino" class="fc"></select></div>
+<div class="fg"><label>Motivo / Observação *</label><textarea id="peObs" class="fc" placeholder="Motivo do pulo..."></textarea></div>
+</div><div class="mf"><button class="btn bo" onclick="cM('mPularE')">Cancelar</button><button class="btn ba" onclick="confirmarPularEtapa()" id="btnPeSv">Pular Etapa</button></div></div></div>
+
 <!-- Modal Editar Datas Etapa (Admin) -->
 <div class="modal" id="mEdDatas"><div class="mc" style="max-width:550px"><div class="mh"><h3>Editar Datas da Etapa</h3><button class="mx" onclick="cM('mEdDatas')">&times;</button></div><div class="mb">
 <input type="hidden" id="edEtapaId">
@@ -259,7 +267,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 <div class="modal" id="mPostagem"><div class="mc" style="max-width:480px"><div class="mh"><h3>Postar OS</h3><button class="mx" onclick="cM('mPostagem')">&times;</button></div><div class="mb">
 <input type="hidden" id="poOsId">
 <div class="peso-box mb16"><p class="ts">A OS será marcada como <strong>Postada</strong> e o cliente poderá ver o código de rastreio no link de acompanhamento.</p></div>
-<div class="fg"><label>Código de Rastreio *</label><input type="text" id="poCodRastreio" class="fc" placeholder="Ex: BR123456789BR" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+<div class="fg"><label>Código de Rastreio (opcional)</label><input type="text" id="poCodRastreio" class="fc" placeholder="Ex: BR123456789BR" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
 <div class="fg"><label>Observação (opcional)</label><textarea id="poObs" class="fc" placeholder="Informações adicionais para o cliente..."></textarea></div>
 </div><div class="mf"><button class="btn bo" onclick="cM('mPostagem')">Cancelar</button><button class="btn bok" onclick="confirmarPostagem()" id="btnPostagem">Confirmar Postagem</button></div></div></div>
 
@@ -272,7 +280,9 @@ const SU='https://zhxhmgwfbxnxbptixskv.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5
 const sb=window.supabase.createClient(SU,SK);
 const STORAGE_URL=SU+'/storage/v1/object/public/flash-fotos/';
 const ET=['entrada','foto','catalogacao','amarracao','banho','cataforetico','corte','conferencia','postagem'];
-const EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Flash',finalizado:'Finalizado'};
+const FL_ET=['flash_entrada','flash_amarracao','flash_banho','flash_corte','flash_conferencia','flash_saida'];
+const ET_ALL=[...ET,...FL_ET];
+const EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Flash (antigo)',flash_entrada:'Entrada',flash_amarracao:'Amarração',flash_banho:'Banho',flash_corte:'Corte',flash_conferencia:'Conferência',flash_saida:'Saída',finalizado:'Finalizado'};
 const SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
 const COR_LBL={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -706,7 +716,7 @@ async function tgC(){
   uPv();
 }
 
-function uPv(){const t=document.getElementById('oT').value,d=document.getElementById('oD').value,c=document.getElementById('oCa')?.checked,pv=document.getElementById('pv');if(!t||!d){pv.innerHTML='';return}if(t==='flash'){const f=new Date(d+'T00:00:00');f.setDate(f.getDate()+7);pv.innerHTML=`<h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Previsão</h4><p>Flash: <strong>7 dias</strong> — Conclusão: <strong>${f.toLocaleDateString('pt-BR')}</strong></p>`;return}const ets=CP.filter(x=>x.aplicavel_a==='folheacao').filter(x=>!x.requer_cataforetico||(x.requer_cataforetico&&c));let da=new Date(d+'T00:00:00'),h='<h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Previsão de Prazos</h4><table style="width:100%;font-size:13px"><thead><tr><th style="text-align:left;padding:6px 8px">Etapa</th><th style="padding:6px 8px">Dias</th><th style="padding:6px 8px">Previsão</th></tr></thead><tbody>';ets.forEach(e=>{const dp=new Date(da);dp.setDate(dp.getDate()+e.prazo_dias);h+=`<tr><td style="padding:6px 8px">${le(e.etapa_nome)}</td><td style="padding:6px 8px;text-align:center">${e.prazo_dias}d</td><td style="padding:6px 8px;text-align:center">${dp.toLocaleDateString('pt-BR')}</td></tr>`;da=dp});h+=`</tbody></table><p style="font-size:14px;margin-top:10px;font-weight:600">Conclusão: ${da.toLocaleDateString('pt-BR')}</p>`;pv.innerHTML=h}
+function uPv(){const t=document.getElementById('oT').value,d=document.getElementById('oD').value,c=document.getElementById('oCa')?.checked,pv=document.getElementById('pv');if(!t||!d){pv.innerHTML='';return}const ets=CP.filter(x=>x.aplicavel_a===t).filter(x=>!x.requer_cataforetico||(x.requer_cataforetico&&c));let da=new Date(d+'T00:00:00'),h='<h4 style="font-size:14px;font-weight:600;margin-bottom:8px">Previsão de Prazos</h4><table style="width:100%;font-size:13px"><thead><tr><th style="text-align:left;padding:6px 8px">Etapa</th><th style="padding:6px 8px">Dias</th><th style="padding:6px 8px">Previsão</th></tr></thead><tbody>';ets.forEach(e=>{const dp=new Date(da);dp.setDate(dp.getDate()+e.prazo_dias);h+=`<tr><td style="padding:6px 8px">${le(e.etapa_nome)}</td><td style="padding:6px 8px;text-align:center">${e.prazo_dias}d</td><td style="padding:6px 8px;text-align:center">${dp.toLocaleDateString('pt-BR')}</td></tr>`;da=dp});h+=`</tbody></table><p style="font-size:14px;margin-top:10px;font-weight:600">Conclusão: ${da.toLocaleDateString('pt-BR')}</p>`;pv.innerHTML=h}
 
 async function svOS(e){
   e.preventDefault();const b=document.getElementById('bSv');const tipo=document.getElementById('oT').value;
@@ -726,7 +736,7 @@ async function svOS(e){
     const clienteId=parseInt(document.getElementById('oCid').value||'0');if(!clienteId){toast('Selecione um cliente válido','er');b.disabled=false;b.textContent='Cadastrar OS';return}const py={numero_os:numero,data_entrada:document.getElementById('oD').value,cliente_id:clienteId,tipo,tem_cataforetico:document.getElementById('oCa')?.checked||false,volume:vol,observacoes:document.getElementById('oO').value.trim()||null,criado_por:U?.id||null};
     const{data:os,error}=await sb.from('ordens_servico').insert(py).select().single();if(error)throw error;
     const{error:e2}=await sb.rpc('gerar_etapas_os',{p_os_id:os.id,p_tipo:os.tipo,p_tem_cataforetico:os.tem_cataforetico,p_data_entrada:os.data_entrada});if(e2)throw e2;
-    await sb.from('movimentacoes_os').insert({os_id:os.id,etapa_origem:null,etapa_destino:tipo==='flash'?'flash_em_andamento':'entrada',usuario_id:U?.id||null,observacoes:'OS cadastrada'});
+    await sb.from('movimentacoes_os').insert({os_id:os.id,etapa_origem:null,etapa_destino:tipo==='flash'?'flash_entrada':'entrada',usuario_id:U?.id||null,observacoes:'OS cadastrada'});
     if(tipo==='flash'){
       await sb.from('flash_controle').insert({os_id:os.id,cor:document.getElementById('oFCor').value,peso_kg:pesoFlash});
       const files=getPendingFiles();
@@ -766,7 +776,7 @@ async function pgP(el){
   <div class="fil">
     <input type="search" class="fc" id="fT" placeholder="Buscar OS ou cliente..." oninput="fOS()">
     <select class="fc" id="fTp" onchange="fOS()"><option value="">Tipo</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select>
-    <select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option>${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash</option></select>
+    <select class="fc" id="fEt" onchange="fOS()"><option value="">Etapa</option><optgroup label="Folheação">${ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}</optgroup><optgroup label="Flash">${FL_ET.map(e=>`<option value="${e}">${le(e)}</option>`).join('')}<option value="flash_em_andamento">Flash (antigo)</option></optgroup></select>
     <select class="fc" id="fAl" onchange="fOS()"><option value="">Alerta</option><option value="vencido">Vencido</option><option value="vence_hoje">Vence hoje</option><option value="vence_amanha">Vence amanhã</option><option value="no_prazo">No prazo</option></select>
   </div>
   <div id="pBulkBar" class="bulk-bar">
@@ -1704,7 +1714,7 @@ async function pgDet(el,id){
   const{data:os}=await sb.from('ordens_servico').select('*,clientes(nome)').eq('id',id).single();
   if(!os){toast('OS não encontrada','er');go('producao');return}_o=os;
   const iF=os.tipo==='folheacao',isFl=os.tipo==='flash';
-  const canAdv=iF&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
+  const canAdv=(iF||isFl)&&(isAdmin()||(os.status==='em_andamento'&&podeEditar(os.etapa_atual)));
   const canPost=(isFl&&os.status==='finalizada')||(iF&&os.status==='em_andamento'&&os.etapa_atual==='postagem')||(iF&&os.status==='finalizada');
   const prazoOrig=os.data_prevista_conclusao_original||os.data_postagem_prevista_original;
 
@@ -1743,7 +1753,7 @@ async function pgDet(el,id){
       </div>
     </div>`:''
 
-  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&iF?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}${isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn bo bsm" onclick="abrirAltData(${os.id})">📅 Alterar Data</button>`:''}${!isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn ber bsm" onclick="abrirFinOS(${os.id})">✓ Finalizar OS</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
+  el.innerHTML=`<div class="ph"><div><h2>OS ${os.numero_os}</h2><p class="phs">${os.clientes?.nome||''} — ${iF?'Folheação':'Flash'}${lote?' · '+lote.numero_lote:''}</p></div><div class="fx g8 fw">${canAdv?`<button class="btn bok" onclick="avE(${os.id})">Avançar Etapa</button>`:''}${canPost?`<button class="btn ba" onclick="abrirPostagem(${os.id})">${isFl?'Marcar Postado':'📦 Postar com Rastreio'}</button>`:''}${isAdmin()&&(iF||isFl)?`<button class="btn bo bsm" onclick="abrirVoltarEtapa(${os.id})">↩ Voltar Etapa</button><button class="btn bo bsm" onclick="abrirPularEtapa(${os.id})">⏭ Pular Etapa</button>`:''}${isAdmin()?`<button class="btn bo" onclick="openEditOS(${os.id})">Editar</button><button class="btn ber" onclick="delOS(${os.id},'${os.numero_os}')">Excluir</button>`:''}${isFl?`<button class="btn bo bsm" onclick="imprimirFichaFlashOS(${os.id})">🖨 Ficha</button>`:''}${isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn bo bsm" onclick="abrirAltData(${os.id})">📅 Alterar Data</button>`:''}${!isFl&&os.status==='em_andamento'&&isAdmin()?`<button class="btn ber bsm" onclick="abrirFinOS(${os.id})">✓ Finalizar OS</button>`:''}  <button class="btn bo bsm" onclick="copyLinkCliente('${os.token_publico}')">📋 Link Cliente</button><button class="btn bo" onclick="history.back()">Voltar</button></div></div>
   ${loteBanner}
   <div class="card mb24"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px">
   <div><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">OS</div><div style="font-size:18px;font-weight:600">${os.numero_os}</div></div>
@@ -1760,11 +1770,12 @@ async function pgDet(el,id){
   ${os.observacoes?`<div style="grid-column:1/-1"><div class="txs tlt" style="text-transform:uppercase;letter-spacing:.5px">Obs</div><div class="mt8">${os.observacoes}</div></div>`:''}
   </div></div>
   ${isFl?'<div class="card mb24" id="flashCtrlArea"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Controle do Flash</h3><div id="flashCtrlContent"><div class="spin"></div></div></div>':''}
-  ${iF?`<div class="card mb24"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">Progresso</h3><div id="cataAction"></div></div><div class="ep" id="oEP"></div><div class="tw mt16"><table><thead><tr><th>Etapa</th><th>Status</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Entr.Real</th><th>Saída Real</th><th>Atraso</th><th>Ação</th></tr></thead><tbody id="oET"></tbody></table></div></div>`:''}
-  ${iF?'<div class="card mb24" id="obsCA" style="display:none"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Observações da Conferência</h3><div id="oCF"></div><div id="oCL"></div></div>':''}
+  ${(iF||isFl)?`<div class="card mb24"><div class="fx ac jb mb16"><h3 style="font-size:16px;font-weight:600">Progresso</h3><div id="cataAction"></div></div><div class="ep" id="oEP"></div><div class="tw mt16"><table><thead><tr><th>Etapa</th><th>Status</th><th>Prazo Orig.</th><th>Prev. Atual</th><th>Entr.Real</th><th>Saída Real</th><th>Atraso</th><th>Ação</th></tr></thead><tbody id="oET"></tbody></table></div></div>`:''}
+  ${(iF||isFl)?'<div class="card mb24" id="obsCA" style="display:none"><h3 style="font-size:16px;font-weight:600;margin-bottom:12px">Observações da Conferência</h3><div id="oCF"></div><div id="oCL"></div></div>':''}
   <div class="card"><div class="tabs"><button class="tb on" onclick="stb('mov',this)">Movimentações</button><button class="tb" onclick="stb('prz',this)">Alterações Prazo</button></div><div class="tp on" id="tpMov"><div id="lM"><div class="spin"></div></div></div><div class="tp" id="tpPrz"><div id="lP"><div class="spin"></div></div></div></div>`;
   if(isFl)await loadFlashCtrl(id,lote,loteOsList);
-  if(iF){await ldEt(id);await ldOC(id);renderCataAction(id)}
+  if(iF||isFl){await ldEt(id);await ldOC(id)}
+  if(iF)renderCataAction(id);
   await Promise.all([ldMv(id),ldHP(id)]);
 }
 
@@ -2079,19 +2090,16 @@ function abrirPostagem(id){
 async function poOS(id){abrirPostagem(id);}
 async function confirmarPostagem(){
   const id=parseInt(document.getElementById('poOsId').value);
-  const cod=document.getElementById('poCodRastreio').value.trim();
+  const cod=document.getElementById('poCodRastreio').value.trim()||null;
   const obs=document.getElementById('poObs').value.trim()||null;
-  if(!cod){toast('Informe o código de rastreio','er');return}
   const btn=document.getElementById('btnPostagem');btn.disabled=true;btn.textContent='Salvando...';
   try{
     const upd={status:'postada',data_postagem:new Date().toISOString(),codigo_rastreio:cod};
     await sb.from('ordens_servico').update(upd).eq('id',id);
-    if(obs){
-      await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — Rastreio: '+cod+(obs?' — '+obs:''),justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod+(obs?' — '+obs:''),visivel_cliente:true});
-    }else{
-      await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — Rastreio: '+cod,justificativa_cliente:'Seu pedido foi postado! Código de rastreio: '+cod,visivel_cliente:true});
-    }
-    toast('OS postada! Rastreio: '+cod);btn.disabled=false;btn.textContent='Confirmar Postagem';cM('mPostagem');go('finalizados');
+    const msgRastreio=cod?'Rastreio: '+cod:'sem código de rastreio';
+    const msgCliente=cod?'Seu pedido foi postado! Código de rastreio: '+cod:'Seu pedido foi postado!';
+    await sb.from('movimentacoes_os').insert({os_id:id,etapa_origem:'postagem',etapa_destino:'postagem',usuario_id:U?.id,observacoes:'Postado — '+msgRastreio+(obs?' — '+obs:''),justificativa_cliente:msgCliente+(obs?' — '+obs:''),visivel_cliente:true});
+    toast('OS postada!'+(cod?' Rastreio: '+cod:''));btn.disabled=false;btn.textContent='Confirmar Postagem';cM('mPostagem');go('finalizados');
   }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Confirmar Postagem'}
 }
 function aPrz(eid,d){document.getElementById('pEid').value=eid;document.getElementById('pDt').value=d;document.getElementById('pJt').value='';oM('mPrz')}
@@ -2142,7 +2150,7 @@ async function upP(id,p){const{error}=await sb.from('perfis').update({perfil:p})
 async function crUsr(){const n=document.getElementById('uuN').value.trim(),e=document.getElementById('uuE').value.trim(),s=document.getElementById('uuS').value,p=document.getElementById('uuP').value;if(!n||!e||!s){toast('Preencha tudo','er');return}const{error}=await sb.auth.signUp({email:e,password:s,options:{data:{nome:n,perfil:p}}});if(error){toast(error.message,'er');return}toast('Criado!');cM('mUsr');ldU()}
 async function ldPz(){const{data}=await sb.from('configuracoes_prazo').select('*').order('aplicavel_a,ordem');document.getElementById('tPz').innerHTML=(data||[]).map(c=>`<tr><td><strong>${le(c.etapa_nome)}</strong></td><td><input type="number" class="fc" style="width:80px;display:inline" value="${c.prazo_dias}" min="0" onchange="upPz(${c.id},this.value)"></td><td><span class="bt ${c.aplicavel_a==='flash'?'bfl':'bf'}">${c.aplicavel_a==='flash'?'Flash':'Folheação'}</span></td><td>${c.requer_cataforetico?'Sim':'Não'}</td></tr>`).join('')}
 async function upPz(id,d){const{error}=await sb.from('configuracoes_prazo').update({prazo_dias:parseInt(d)}).eq('id',id);error?toast('Erro','er'):toast('Atualizado!')}
-async function ldPerm(){const{data:users}=await sb.from('perfis').select('id,nome').order('nome');const{data:perms}=await sb.from('permissoes_etapa').select('*');const ap=perms||[];let h='<div class="tw"><table><thead><tr><th>Usuário</th>';ET.forEach(e=>h+=`<th class="tc">${le(e)}</th>`);h+='</tr></thead><tbody>';(users||[]).forEach(u=>{h+=`<tr><td><strong>${u.nome}</strong></td>`;ET.forEach(e=>{const has=ap.some(p=>p.usuario_id===u.id&&p.etapa_nome===e&&p.pode_editar);h+=`<td class="tc"><input type="checkbox" ${has?'checked':''} onchange="tgPerm('${u.id}','${e}',this.checked)"></td>`});h+='</tr>'});h+='</tbody></table></div>';document.getElementById('permGrid').innerHTML=h}
+async function ldPerm(){const{data:users}=await sb.from('perfis').select('id,nome').order('nome');const{data:perms}=await sb.from('permissoes_etapa').select('*');const ap=perms||[];let h='<div class="tw"><table><thead><tr><th>Usuário</th>';ET_ALL.forEach(e=>h+=`<th class="tc">${le(e)}</th>`);h+='</tr></thead><tbody>';(users||[]).forEach(u=>{h+=`<tr><td><strong>${u.nome}</strong></td>`;ET_ALL.forEach(e=>{const has=ap.some(p=>p.usuario_id===u.id&&p.etapa_nome===e&&p.pode_editar);h+=`<td class="tc"><input type="checkbox" ${has?'checked':''} onchange="tgPerm('${u.id}','${e}',this.checked)"></td>`});h+='</tr>'});h+='</tbody></table></div>';document.getElementById('permGrid').innerHTML=h}
 async function tgPerm(uid,etapa,checked){if(checked){await sb.from('permissoes_etapa').upsert({usuario_id:uid,etapa_nome:etapa,pode_editar:true},{onConflict:'usuario_id,etapa_nome'})}else{await sb.from('permissoes_etapa').delete().eq('usuario_id',uid).eq('etapa_nome',etapa)}const{data}=await sb.from('permissoes_etapa').select('*');PERMS=data||[];toast('Atualizado!')}
 
 // ===== RETENÇÃO 6 MESES =====
@@ -2345,6 +2353,32 @@ async function confirmarVoltarEtapa(){
   try{const{data,error}=await sb.rpc('voltar_os_etapa_anterior',{p_os_id:osId,p_usuario_id:U?.id||null,p_observacao:obs});if(error)throw error;const r=typeof data==='string'?JSON.parse(data):data;if(!r.success){toast(r.error,'er');btn.disabled=false;btn.textContent='Voltar Etapa';return}toast(r.message);cM('mVoltarE');pgDet(document.getElementById('pg'),osId)}catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Voltar Etapa'}
 }
 
+// ===== PULAR ETAPA (Admin) =====
+function abrirPularEtapa(osId){
+  document.getElementById('peOsId').value=osId;
+  document.getElementById('peObs').value='';
+  const sel=document.getElementById('peEtapaDestino');
+  const atual=_o?.etapa_atual;
+  sel.innerHTML=(_e||[]).map(e=>`<option value="${e.etapa_nome}" ${e.etapa_nome===atual?'disabled':''}>${le(e.etapa_nome)}${e.status==='concluida'?' (concluída)':e.status==='pulada'?' (pulada)':e.etapa_nome===atual?' (atual)':''}</option>`).join('');
+  const btn=document.getElementById('btnPeSv');btn.disabled=false;btn.textContent='Pular Etapa';
+  oM('mPularE');
+}
+async function confirmarPularEtapa(){
+  const osId=parseInt(document.getElementById('peOsId').value);
+  const destino=document.getElementById('peEtapaDestino').value;
+  const obs=document.getElementById('peObs').value.trim();
+  if(!destino){toast('Selecione a etapa de destino','er');return}
+  if(!obs){toast('Informe o motivo','er');return}
+  const btn=document.getElementById('btnPeSv');btn.disabled=true;btn.textContent='Pulando...';
+  try{
+    const{data,error}=await sb.rpc('pular_os_etapa',{p_os_id:osId,p_etapa_destino:destino,p_usuario_id:U?.id||null,p_observacao:obs});
+    if(error)throw error;
+    const r=typeof data==='string'?JSON.parse(data):data;
+    if(!r.success){toast(r.error,'er');btn.disabled=false;btn.textContent='Pular Etapa';return}
+    toast(r.message);cM('mPularE');pgDet(document.getElementById('pg'),osId);
+  }catch(x){toast(x.message||'Erro','er');btn.disabled=false;btn.textContent='Pular Etapa'}
+}
+
 // ===== EDITAR DATAS ETAPA (Admin) =====
 function abrirEdDatas(etapaId){
   const e=_e.find(x=>x.id===etapaId);if(!e)return;
@@ -2409,7 +2443,7 @@ async function svAtrasoCliente(){
 }
 
 // ===== PUBLIC TRACKING (cliente externo) =====
-const PUB_EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Em Processo',finalizado:'Finalizado'};
+const PUB_EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Em Processo',flash_entrada:'Entrada',flash_amarracao:'Amarração',flash_banho:'Banho',flash_corte:'Corte',flash_conferencia:'Conferência',flash_saida:'Saída',finalizado:'Finalizado'};
 const PUB_SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
 const PUB_COR={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
 function fdLong(d){if(!d)return'—';return new Date(d+(d.includes('T')?'':'T00:00:00')).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
