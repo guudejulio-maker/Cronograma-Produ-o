@@ -37,7 +37,7 @@ textarea.fc{resize:vertical;min-height:80px}.fr{display:grid;grid-template-colum
 tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:middle}tbody tr:last-child td{border-bottom:none}tbody tr:hover{background:rgba(27,42,74,.02)}tr.re{background:rgba(220,38,38,.04)}tr.rw{background:rgba(217,119,6,.04)}
 .bdg{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap}.bok2{background:var(--okb);color:var(--okt)}.bwn{background:var(--wnb);color:var(--wnt)}.bor{background:var(--orb);color:var(--ort)}.ber2{background:var(--erb);color:var(--ert)}
 .bt{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}.bf{background:#EDE9FE;color:#5B21B6}.bfl{background:#FEF3C7;color:#92400E}.be{background:var(--infb);color:var(--inft);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}.bc{background:#EDE9FE;color:#5B21B6;font-size:10px;padding:2px 8px;border-radius:10px}
-.b-ouro{background:#FEF3C7;color:#92400E}.b-prata{background:#F3F4F6;color:#374151}.b-diamante{background:#EDE9FE;color:#5B21B6}
+.b-ouro{background:#FEF3C7;color:#92400E}.b-prata{background:#F3F4F6;color:#374151}.b-diamante{background:#EDE9FE;color:#5B21B6}.b-verniz_gold{background:#F6E0A0;color:#6B4E00}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center;padding:20px}.modal.on{display:flex}.mc{background:var(--bgc);border-radius:var(--rl);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.12)}
 .mh{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--brd)}.mh h3{font-size:18px;font-weight:600}.mx{background:none;border:none;font-size:24px;color:var(--txl);cursor:pointer;padding:4px;line-height:1}.mb{padding:24px}.mf{padding:16px 24px;border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:10px}
 .kb{display:flex;gap:12px;overflow-x:auto;padding-bottom:16px}.kc{min-width:220px;max-width:280px;flex-shrink:0;background:var(--bg);border-radius:var(--rl);border:1px solid var(--brd)}.kh{padding:14px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}.kh h4{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}.kcn{background:var(--pri);color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}.kby{padding:10px;display:flex;flex-direction:column;gap:8px;max-height:65vh;overflow-y:auto}
@@ -115,6 +115,7 @@ tbody td{padding:14px 16px;border-bottom:1px solid var(--brd);vertical-align:mid
 .cor-ouro{background:#FEF3C7;color:#92400E;padding:5px 14px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
 .cor-prata{background:#F3F4F6;color:#374151;padding:5px 14px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
 .cor-diamante{background:#EDE9FE;color:#5B21B6;padding:5px 14px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
+.cor-verniz_gold{background:#F6E0A0;color:#6B4E00;padding:5px 14px;border-radius:10px;font-size:12px;font-weight:600;display:inline-block}
 @media(max-width:480px){.pub-ig{grid-template-columns:1fr}.pub-prev .dt{font-size:24px}.pub-ct{padding:20px 14px}.pub-card{padding:20px}.pub-il{padding:12px}}
 @media(max-width:768px){.side{transform:translateX(-100%)}.side.open{transform:translateX(0)}.sov.on{display:block}.mtog{display:flex}.mn{margin-left:0;padding:72px 16px 20px}.ph{flex-direction:column;align-items:flex-start}.fr,.fr3{grid-template-columns:1fr}.fil{flex-direction:column;align-items:stretch}.fil .fc{width:100%;min-width:auto}.stats{grid-template-columns:repeat(2,1fr);gap:10px}.st{padding:14px}.stv{font-size:24px}.g2{grid-template-columns:1fr}.lb{padding:32px 24px}.kc{min-width:260px}.foto-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr))}}
 </style>
@@ -284,7 +285,7 @@ const FL_ET=['flash_entrada','flash_amarracao','flash_banho','flash_corte','flas
 const ET_ALL=[...ET,...FL_ET];
 const EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Flash (antigo)',flash_entrada:'Entrada',flash_amarracao:'Amarração',flash_banho:'Banho',flash_corte:'Corte',flash_conferencia:'Conferência',flash_saida:'Saída',finalizado:'Finalizado'};
 const SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
-const COR_LBL={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
+const COR_LBL={ouro:'Ouro',prata:'Prata',diamante:'Diamante',verniz_gold:'Verniz Gold'};
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 let U=null,UP=null,CP=[],PERMS=[],CLI_OPTS=[];
 
@@ -677,7 +678,7 @@ async function pgN(el){
   <div class="fr"><div class="fg"><label>Número da OS *</label><input type="text" id="oN" class="fc" placeholder="Ex: OS-2026-0001" required><p class="ts tlt mt8" id="oNHint"></p></div><div class="fg"><label>Data de Entrada *</label><input type="date" id="oD" class="fc" value="${hj()}" required></div></div>
   <div class="fg"><label>Cliente *</label><input type="hidden" id="oCid"><div class="cli-auto"><input type="text" id="oCSearch" class="fc" placeholder="Digite o nome do cliente..." autocomplete="off" required oninput="handleCliSearch()" onfocus="handleCliSearch()" onkeydown="navCliSearch(event)"><div id="oCResults" class="cli-results"></div></div><div id="oCChip" class="cli-chip"></div><p class="ts tlt mt8">Digite para buscar e selecione o cliente correto.</p><button type="button" class="btn bo bsm mt8" onclick="openNewCli()">+ Novo cliente</button></div>
   <div class="fr"><div class="fg"><label>Tipo *</label><select id="oT" class="fc" required onchange="tgC()"><option value="">Selecione</option><option value="folheacao">Folheação</option><option value="flash">Flash</option></select></div><div class="fg" id="gCa" style="display:none"><label>Cataforético?</label><div class="fchk mt8"><input type="checkbox" id="oCa"><label for="oCa">Sim, possui</label></div></div></div>
-  <div id="flashFields" style="display:none"><div class="fr"><div class="fg"><label>Cor do Flash *</label><select id="oFCor" class="fc"><option value="">Selecione</option><option value="ouro">Ouro</option><option value="prata">Prata</option><option value="diamante">Diamante</option></select></div><div class="fg"><label>Peso Entrada (KG) *</label><input type="text" inputmode="decimal" id="oFPeso" class="fc" placeholder="Ex: 0,402"></div></div>
+  <div id="flashFields" style="display:none"><div class="fr"><div class="fg"><label>Cor do Flash *</label><select id="oFCor" class="fc"><option value="">Selecione</option><option value="ouro">Ouro</option><option value="prata">Prata</option><option value="diamante">Diamante</option><option value="verniz_gold">Verniz Gold</option></select></div><div class="fg"><label>Peso Entrada (KG) *</label><input type="text" inputmode="decimal" id="oFPeso" class="fc" placeholder="Ex: 0,402"></div></div>
   <div class="fg"><label>Fotos de Entrada *</label><p class="ts tlt mb8">Tire fotos ou selecione da galeria (mín. 1 foto)</p>${renderUploadArea('fEntPrev','fEntInput')}</div></div>
   <div id="folhFields" style="display:none"><div class="fg"><label>Peso (KG)</label><input type="text" id="oV" class="fc" placeholder="Ex: 12.5 KG"></div></div>
   <div class="fg"><label>Observações</label><textarea id="oO" class="fc"></textarea></div>
@@ -2442,7 +2443,7 @@ async function svAtrasoCliente(){
 // ===== PUBLIC TRACKING (cliente externo) =====
 const PUB_EL={entrada:'Entrada',foto:'Foto',catalogacao:'Catalogação',amarracao:'Amarração',banho:'Banho',cataforetico:'Cataforético',corte:'Corte',conferencia:'Conferência',postagem:'Postagem',flash_em_andamento:'Em Processo',flash_entrada:'Entrada',flash_amarracao:'Amarração',flash_banho:'Banho',flash_corte:'Corte',flash_conferencia:'Conferência',flash_saida:'Saída',finalizado:'Finalizado'};
 const PUB_SL={em_andamento:'Em Andamento',finalizada:'Finalizada',cancelada:'Cancelada',postada:'Postada'};
-const PUB_COR={ouro:'Ouro',prata:'Prata',diamante:'Diamante'};
+const PUB_COR={ouro:'Ouro',prata:'Prata',diamante:'Diamante',verniz_gold:'Verniz Gold'};
 function fdLong(d){if(!d)return'—';return new Date(d+(d.includes('T')?'':'T00:00:00')).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}
 
 async function showPublicView(token){
@@ -2632,8 +2633,8 @@ async function imprimirFichaFlashOS(osId){
 }
 function imprimirFichaFlash(dados,w){
   const{numero_os,cliente,cor,peso_kg,data_entrada}=dados;
-  const corLabel={ouro:'Ouro',prata:'Prata',diamante:'Diamante'}[cor]||cor||'—';
-  const corHex={ouro:'#D4A853',prata:'#9CA3AF',diamante:'#8B5CF6'}[cor]||'#1B2A4A';
+  const corLabel={ouro:'Ouro',prata:'Prata',diamante:'Diamante',verniz_gold:'Verniz Gold'}[cor]||cor||'—';
+  const corHex={ouro:'#D4A853',prata:'#9CA3AF',diamante:'#8B5CF6',verniz_gold:'#B8860B'}[cor]||'#1B2A4A';
   const dataFmt=data_entrada?new Date(data_entrada+'T00:00:00').toLocaleDateString('pt-BR'):'—';
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Flash ${numero_os}</title>
   <style>
